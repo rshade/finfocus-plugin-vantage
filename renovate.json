@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "enabled": true,
   "extends": [
-    "config:recommended",
     "config:recommended"
   ],
   "description": "Renovate config for pulumicost-plugin-vantage. Disabled by default. Enable if needed for advanced dependency management.",
@@ -17,5 +16,12 @@
   },
   "github-actions": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["go"],
+      "allowedVersions": "~1.25"
+    }
+  ]
 }
