@@ -295,6 +295,41 @@ func TestPager_NextPage(t *testing.T) {
 	assert.False(t, page2.HasMore)
 
 	assert.Equal(t, 2, callCount)
+
+	// Third attempt should fail since there are no more pages.
+	_, err = pager.NextPage(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no more pages available")
+}
+
+func TestPager_NextPage_ClientError(t *testing.T) {
+	// Mock server that returns an error.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal server error"))
+	}))
+	defer server.Close()
+
+	client, err := New(Config{
+		BaseURL:    server.URL,
+		Token:      "test-token",
+		Timeout:    time.Second * 5,
+		MaxRetries: 0,
+		Logger:     NewNoopLogger(),
+	})
+	require.NoError(t, err)
+
+	pager := NewPager(client, Query{
+		WorkspaceToken: "test-workspace",
+		StartAt:        time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		EndAt:          time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
+		Granularity:    "day",
+	}, NewNoopLogger())
+
+	// NextPage should fail due to API error.
+	_, err = pager.NextPage(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching costs page")
 }
 
 func TestDefaultConfig(t *testing.T) {
