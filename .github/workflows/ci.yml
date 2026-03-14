@@ -25,7 +25,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.3'
+          go-version: '1.26.1'
           cache: true
 
       - name: Run tests with coverage
@@ -59,13 +59,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.3'
+          go-version: '1.26.1'
           cache: true
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.5.0
+          version: v2.11.3
           args: --timeout=5m
 
       - name: Run markdownlint
@@ -84,7 +84,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.3'
+          go-version: '1.26.1'
           cache: true
 
       - name: Install govulncheck
@@ -103,7 +103,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.3'
+          go-version: '1.26.1'
           cache: true
 
       - name: Verify code quality
@@ -126,7 +126,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.3'
+          go-version: '1.26.1'
           cache: true
 
       - name: Build binary
