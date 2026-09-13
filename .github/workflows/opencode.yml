@@ -22,12 +22,12 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Run OpenCode
-        uses: sst/opencode/github@v1.2.26
+        uses: sst/opencode/github@v2.0.3
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
