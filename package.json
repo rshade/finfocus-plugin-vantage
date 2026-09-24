@@ -7,8 +7,8 @@
     "markdownlint": "npx markdownlint-cli '**/*.md' --ignore node_modules"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.0.0",
-    "@commitlint/config-conventional": "^20.0.0",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "markdownlint-cli": "^0.48.0"
   }
 }
