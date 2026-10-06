@@ -3,6 +3,8 @@ package integration_test
 import (
 	"encoding/json"
 	"os"
+	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -38,8 +40,22 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	if manifest["."] == "" {
 		t.Fatal("root release version is missing")
 	}
-	// Until the first release is published, the manifest must not claim it shipped.
-	if manifest["."] != "0.0.0" {
-		t.Fatal("unexpected first-release manifest version")
+	// v0.1.0 has been published; later release PRs may advance the manifest.
+	if manifest["."] == "0.0.0" || !regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(manifest["."]) {
+		t.Fatal("manifest must record a published semantic version")
+	}
+}
+
+func TestReleaseArchiveNaming(t *testing.T) {
+	config, err := os.ReadFile("../../.goreleaser.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// URL installation strips finfocus-plugin- from the repository name.
+	if !strings.Contains(string(config), "name_template: 'vantage_{{ .Version }}_") {
+		t.Fatal("archives must use the vantage prefix required by URL installation")
+	}
+	if !strings.Contains(string(config), "name_template: 'checksums.txt'") {
+		t.Fatal("installer requires checksums.txt")
 	}
 }

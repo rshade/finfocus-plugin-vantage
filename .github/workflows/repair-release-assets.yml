@@ -1,0 +1,51 @@
+name: Repair Release Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-release-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: v0.1.0
+    steps:
+      - name: Add installer-compatible archive names
+        shell: bash
+        run: |
+          set -euo pipefail
+          TASK_RELEASE_DIR=$(mktemp -d)
+          cd "$TASK_RELEASE_DIR"
+          gh release download "$RELEASE_TAG" --pattern 'finfocus-plugin-vantage_*' --pattern checksums.txt
+          sha256sum -c checksums.txt --ignore-missing
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import shutil
+
+          root = pathlib.Path('.')
+          originals = sorted(root.glob('finfocus-plugin-vantage_*'))
+          if len(originals) != 6:
+              raise SystemExit('Expected six original platform archives')
+          entries = {}
+          for line in (root / 'checksums.txt').read_text().splitlines():
+              digest, name = line.split(None, 1)
+              entries[name.strip()] = digest
+          for source in originals:
+              target = root / source.name.replace('finfocus-plugin-vantage_', 'vantage_', 1)
+              shutil.copyfile(source, target)
+              entries[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
+          (root / 'checksums.txt').write_text(''.join(
+              f'{digest}  {name}\n' for name, digest in sorted(entries.items())
+          ))
+          PY
+          sha256sum -c checksums.txt
+          gh release upload "$RELEASE_TAG" vantage_* checksums.txt --clobber
