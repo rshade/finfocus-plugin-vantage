@@ -6,6 +6,7 @@ MAIN_PACKAGE=./cmd/$(BINARY_NAME)
 GO_VERSION=1.27.1
 COVERAGE_THRESHOLD=70
 CLIENT_COVERAGE_THRESHOLD=80
+PLUGIN_COVERAGE_THRESHOLD=80
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo v0.1.0-dev)
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
@@ -36,6 +37,7 @@ test-coverage:
 	@echo "Running tests with coverage..."
 	@go test ./... -v -race -timeout 5m -coverprofile=coverage.out -covermode=atomic
 	@echo "Overall coverage: $$(go tool cover -func=coverage.out | grep total | awk '{print $$3}')"
+	@bash scripts/check-coverage.sh coverage.out $(COVERAGE_THRESHOLD) $(CLIENT_COVERAGE_THRESHOLD) $(PLUGIN_COVERAGE_THRESHOLD)
 	@echo "Coverage report generated: coverage.out"
 
 lint:
