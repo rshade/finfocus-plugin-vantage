@@ -1,27 +1,47 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabled": true,
   "extends": [
     "config:recommended"
   ],
-  "description": "Renovate config for finfocus-plugin-vantage. Disabled by default. Enable if needed for advanced dependency management.",
-  "schedule": [
-    "before 3am on Monday"
+  "postUpdateOptions": [
+    "gomodTidy"
   ],
-  "prHourlyLimit": 2,
-  "prConcurrentLimit": 5,
-  "groupName": "dependencies",
-  "gomod": {
-    "enabled": true
-  },
-  "github-actions": {
-    "enabled": true
-  },
+  "schedule": [
+    "before 4am on monday"
+  ],
+  "timezone": "UTC",
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchPackageNames": ["go"],
-      "allowedVersions": "~1.25"
+      "matchDepNames": ["go"],
+      "allowedVersions": "~1.27"
+    },
+    {
+      "description": "testdata go.mod files are fixtures whose pinned versions are what the tests assert, so Renovate must not bump them.",
+      "matchFileNames": [
+        "**/testdata/**"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "go dependencies",
+      "groupSlug": "go-deps"
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "go major dependencies",
+      "groupSlug": "go-major-deps"
     }
   ]
 }
