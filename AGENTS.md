@@ -31,7 +31,7 @@
 
 ## Vantage API Client
 
-The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-go` v0.1.13, MIT) behind the `internal/vantageapi` interface. Production API access should go through this wrapper.
+The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-go` v0.1.14, MIT) behind the `internal/vantageapi` interface. Production API access should go through this wrapper.
 
 **Client setup:**
 - Base URL defaults to `https://api.vantage.sh/v2` (the official API server)
@@ -45,13 +45,14 @@ The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-
 
 ```go
 client, err := vantageapi.NewClient("https://api.vantage.sh/v2", "your-token")
-resp, err := client.GetCosts(ctx, &GetCostsParams{
+start, end, bin, limit := "2026-10-01", "2026-10-31", "day", 5000
+resp, err := client.GetCosts(ctx, &vantageapi.GetCostsParams{
     CostReportToken: &token,
-    StartDate: &"2026-10-01",
-    EndDate: &"2026-10-31",
-    DateBin: &"day",
+    StartDate: &start,
+    EndDate: &end,
+    DateBin: &bin,
     Groupings: []string{"provider", "service", "region"},
-    Limit: &5000,
+    Limit: &limit,
 })
 ```
 

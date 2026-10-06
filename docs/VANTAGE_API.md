@@ -13,10 +13,10 @@ may supply the bearer token as gRPC metadata named
 environment token for that request.
 
 Requests use daily bins, UTC calendar dates, and provider, service, account,
-region, and resource ID groupings. Provider, resource ID, optional service,
-and supplied labels are expressed as VQL filters. Vantage API throttling or
-availability errors are returned as gRPC `UNAVAILABLE`. The response currently
-returns Vantage's next page through the FinFocus `next_page_token`. The RPC
+region, and resource ID groupings. Provider, resource ID, required service,
+and supplied cloud tags are expressed as VQL filters. Vantage API throttling or
+availability errors are returned as gRPC `UNAVAILABLE`. Default requests fetch all pages. Explicitly paginated requests
+return Vantage's next page through the FinFocus `next_page_token`. The RPC
 token is opaque to callers, even though the plugin internally maps it to the
 Vantage page number.
 

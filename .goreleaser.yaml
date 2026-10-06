@@ -39,7 +39,7 @@ archives:
       - docs/**/*
 
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: 'checksums.txt'
   algorithm: sha256
 
 release:
@@ -50,11 +50,11 @@ release:
   footer: |
     ### Verification
 
-    All binaries include checksums provided in `{{ .ProjectName }}_{{ .Version }}_checksums.txt`.
+    All binaries include checksums provided in `checksums.txt`.
 
     ```bash
     # Verify checksum (example for Linux amd64)
-    sha256sum -c {{ .ProjectName }}_{{ .Version }}_checksums.txt --ignore-missing
+    sha256sum -c checksums.txt --ignore-missing
     ```
 
     ### Installation
