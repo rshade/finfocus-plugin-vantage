@@ -19,26 +19,23 @@
 
 ### Codebase Architecture (gRPC migration in progress)
 
-**Current design**: pluginsdk gRPC server with initial GetActualCost mapping.
-The legacy `Sink` interface and sync adapter remain during migration.
+**Current design**: pluginsdk gRPC server with GetActualCost mapping. The legacy
+sync adapter, Sink interface, and hand-written HTTP client have been retired.
 
 - `cmd/finfocus-plugin-vantage/main.go`: pluginsdk gRPC server entry point
-- `internal/vantage/client/`: REST client for Vantage API (`/costs` with
-  pagination, `/forecast`)
-- `internal/vantage/adapter/`: Schema mapping to FOCUS 1.2 `CostRecord`
-  (not finfocus-spec format)
 - `internal/plugin/`: CostSource implementation and RPC to Vantage mapping
+- `internal/vantageapi/`: wrapper around the official Vantage Go client
 
 **Migration status for v0.1.0**:
 
 - ✅ Replace Cobra CLI with **gRPC server** (pluginsdk.Serve)
 - ✅ Upgrade Go to 1.27.1 and add finfocus-spec v0.7.0
-- 🟡 Retire `Sink` interface (legacy adapter still uses it; migration remains)
+- ✅ Retire legacy `Sink`, sync adapter, and HTTP client (VT-0.2)
 - ✅ Rename module to `github.com/rshade/finfocus-plugin-vantage`
 - 🟡 Implement `CostSourceService` methods (GetActualCost, Supports, and Name are implemented; projected/pricing/estimate return UNIMPLEMENTED)
 - ✅ Document unavailable FOCUS 1.4 invoice and commitment source fields
 - ✅ Support per-request credentials (v0.7.0 feature)
-- ✅ Keep Vantage client + adapter logic
+- ✅ Use the official Vantage client through `internal/vantageapi`
 
 ### Build & Test Status (VT-1.1 & VT-1.2 Complete)
 
@@ -48,8 +45,8 @@ $ go build ./...
 
 $ go test ./...
 ok  github.com/rshade/finfocus-plugin-vantage/cmd/finfocus-plugin-vantage
-ok  github.com/rshade/finfocus-plugin-vantage/internal/vantage/adapter
-ok  github.com/rshade/finfocus-plugin-vantage/internal/vantage/client
+ok  github.com/rshade/finfocus-plugin-vantage/internal/plugin
+ok  github.com/rshade/finfocus-plugin-vantage/internal/vantageapi
 
 $ go vet ./...
 (No issues) ✅
@@ -104,12 +101,14 @@ finfocus-spec: v0.7.0 ✅
 - Interface: `internal/vantageapi/Client` (insulates from generated code changes)
 - Base URL: `https://api.vantage.sh/v2` (v2 API)
 - Security: http:// URLs rejected except for loopback addresses (testing guard for bearer tokens)
-- Legacy `internal/vantage/client` remains; retirement tracked by VT-0.2
+- Legacy `internal/vantage/client` and `internal/vantage/adapter` were removed
+  after confirming there were no remaining production callers.
 
-**VT-0.2: Retire Legacy HTTP Client (TODO)**
-- Migrate all callers from `internal/vantage/client` to `internal/vantageapi`
-- Delete `internal/vantage/client/` directory
-- Acceptance: All tests pass, `go mod tidy` removes unused deps
+**VT-0.2: Retire Legacy HTTP Client (DONE)**
+- Removed the unused legacy sync adapter and hand-written HTTP client.
+- Removed WireMock contract-test infrastructure and the obsolete CLI demo.
+- The gRPC plugin's HTTP integration test uses an in-process mock server.
+- Acceptance: no legacy package imports; tests and lint pass.
 
 **API Discrepancies to Fix** (from research file `../finfocus-pm/research/vantage-api-facts.md`):
 Tasks below reference these corrections:

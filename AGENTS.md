@@ -15,7 +15,7 @@
 
 ## Code Style Guidelines
 
-- **Language**: Go 1.24.7+
+- **Language**: Go 1.27.1+
 - **Imports**: Standard library → third-party → internal packages
 - **Naming**: camelCase variables/functions, PascalCase exported types
 - **Error Handling**: Return errors, fmt.Errorf wrapping, context cancellation checks
@@ -25,14 +25,13 @@
 
 ## Project Structure
 
-- `cmd/finfocus-plugin-vantage/` - CLI with Cobra
-- `internal/vantage/client/` - REST client with retry/backoff
-- `internal/vantage/adapter/` - FOCUS 1.2 mapping/sync logic
-- `test/wiremock/` - Mock server configs
+- `cmd/finfocus-plugin-vantage/` - gRPC plugin entry point
+- `internal/plugin/` - FinFocus RPC implementation and Vantage mapping
+- `internal/vantageapi/` - wrapper around the official Vantage Go client
 
 ## Vantage API Client
 
-The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-go` v0.1.13, MIT) behind `internal/vantageapi` interface. Legacy hand-written client (`internal/vantage/client`) remains for now; migration tracked by task VT-0.2.
+The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-go` v0.1.13, MIT) behind the `internal/vantageapi` interface. Production API access should go through this wrapper.
 
 **Client setup:**
 - Base URL defaults to `https://api.vantage.sh/v2` (the official API server)
@@ -40,10 +39,7 @@ The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-
 - Read-scope Service token recommended (no Write permissions needed)
 - All endpoints wrapped by `internal/vantageapi` interface (not direct generated client usage)
 
-**Key endpoints:**
-- `GET /costs`: Query costs with date range, groupings, and settings
-- `GET /cost_reports/{token}/forecasted_costs`: Forecast snapshots per provider/service
-- Response amounts are decimal strings (never float for money)
+**Key endpoint:** `GET /costs` queries cost data. Amounts are decimal strings; do not use floating point for money.
 
 **Using the wrapper:**
 
@@ -59,8 +55,6 @@ resp, err := client.GetCosts(ctx, &GetCostsParams{
 })
 ```
 
-## Testing Requirements
+## Testing
 
-- ≥80% client coverage, ≥70% overall
-- Contract tests with Wiremock, golden file validation
-- `make wiremock-up/down` for mock server
+Run `make test` and `make lint`. Plugin integration tests use an in-process mock Vantage API.

@@ -39,6 +39,6 @@ go test ./...
 go vet ./...
 ```
 
-The legacy adapter and its contract tests remain in `internal/vantage/adapter`;
-the gRPC implementation is in `internal/plugin` and uses the official-client
-wrapper in `internal/vantageapi`.
+The gRPC implementation is in `internal/plugin` and uses the official Vantage
+client through the `internal/vantageapi` wrapper. Its mock API integration test
+uses an in-process HTTP server, so no external mock service is required.

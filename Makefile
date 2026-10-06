@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt vet tidy verify clean wiremock-up wiremock-down demo help govulncheck
+.PHONY: build test test-coverage lint fmt vet tidy verify clean help govulncheck
 
 # Variables
 BINARY_NAME=finfocus-plugin-vantage
@@ -21,9 +21,6 @@ help:
 	@echo "  make tidy               - Run go mod tidy and verify no changes"
 	@echo "  make verify             - Run all verification checks (fmt, vet, tidy)"
 	@echo "  make clean              - Remove built artifacts"
-	@echo "  make wiremock-up        - Start Wiremock mock server"
-	@echo "  make wiremock-down      - Stop Wiremock mock server"
-	@echo "  make demo               - Run demo against mock server"
 	@echo "  make help               - Show this help message"
 
 build:
@@ -76,19 +73,3 @@ clean:
 	@rm -rf bin/
 	@rm -f coverage.out
 	@go clean
-
-wiremock-up:
-	@echo "Starting Wiremock mock server..."
-	@docker-compose -f test/wiremock/docker-compose.yml up -d
-	@echo "Wiremock server started on http://localhost:8080"
-
-wiremock-down:
-	@echo "Stopping Wiremock mock server..."
-	@docker-compose -f test/wiremock/docker-compose.yml down
-	@echo "Wiremock server stopped"
-
-demo: wiremock-up
-	@echo "Running demo against mock server..."
-	@sleep 2
-	@go run $(MAIN_PACKAGE) pull --config ./test/config-mock.yaml || true
-	@make wiremock-down
