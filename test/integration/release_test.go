@@ -3,6 +3,7 @@ package integration_test
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -15,6 +16,7 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	var config struct {
 		Packages map[string]struct {
 			IncludeComponentInTag *bool  `json:"include-component-in-tag"`
+			BumpPatchPreMajor     *bool  `json:"bump-patch-for-minor-pre-major"`
 			InitialVersion        string `json:"initial-version"`
 		} `json:"packages"`
 	}
@@ -24,6 +26,9 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	root, ok := config.Packages["."]
 	if !ok || root.IncludeComponentInTag == nil || *root.IncludeComponentInTag {
 		t.Fatal("root package must explicitly disable component-prefixed tags")
+	}
+	if root.BumpPatchPreMajor == nil || !*root.BumpPatchPreMajor {
+		t.Fatal("bump-patch-for-minor-pre-major must be true to match the family release config")
 	}
 	if root.InitialVersion != "0.1.0" {
 		t.Fatal("first release must be v0.1.0")
@@ -39,9 +44,20 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	if manifest["."] == "" {
 		t.Fatal("root release version is missing")
 	}
-	// v0.1.0 is published, so the manifest records it and the next release is v0.1.1.
-	if manifest["."] != "0.1.0" {
-		t.Fatal("manifest must record the published v0.1.0")
+	// Release Please bumps the manifest on every release PR, so assert the
+	// published v0.1.0 floor rather than pinning one version.
+	parts := strings.Split(manifest["."], ".")
+	if len(parts) != 3 {
+		t.Fatalf("manifest version %q must be MAJOR.MINOR.PATCH", manifest["."])
+	}
+	var nums [3]int
+	for i, part := range parts {
+		if nums[i], err = strconv.Atoi(part); err != nil || nums[i] < 0 {
+			t.Fatalf("manifest version %q must be numeric MAJOR.MINOR.PATCH", manifest["."])
+		}
+	}
+	if nums[0] == 0 && nums[1] == 0 {
+		t.Fatalf("manifest version %q must not precede the published v0.1.0", manifest["."])
 	}
 }
 
