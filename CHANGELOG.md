@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.2](https://github.com/rshade/finfocus-plugin-vantage/compare/v0.1.1...v0.1.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **release:** remove the docker publish workflow ([#122](https://github.com/rshade/finfocus-plugin-vantage/issues/122)) ([2e8e70d](https://github.com/rshade/finfocus-plugin-vantage/commit/2e8e70d743dcda76441cc910fc3ce2ee747be5e4))
+
 ## [0.1.1](https://github.com/rshade/finfocus-plugin-vantage/compare/v0.1.0...v0.1.1) (2026-10-06)
 
 
