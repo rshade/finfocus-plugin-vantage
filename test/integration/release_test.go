@@ -95,3 +95,28 @@ func TestReleaseWorkflowRunsOnReleaseCreated(t *testing.T) {
 		t.Fatal("release.yml must not trigger on pushed tags")
 	}
 }
+
+func TestReleaseOnlyPublishesArchives(t *testing.T) {
+	workflows, err := os.ReadDir("../../.github/workflows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range workflows {
+		body, readErr := os.ReadFile("../../.github/workflows/" + entry.Name())
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if strings.Contains(string(body), "docker/build-push-action") {
+			t.Fatalf("%s builds a container image; releases publish archives and checksums only", entry.Name())
+		}
+	}
+	goreleaser, err := os.ReadFile("../../.goreleaser.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, section := range []string{"dockers", "dockers_v2", "brews", "homebrew_casks", "nfpms"} {
+		if strings.Contains(string(goreleaser), "\n"+section+":") {
+			t.Fatalf(".goreleaser.yaml must not define %s", section)
+		}
+	}
+}
