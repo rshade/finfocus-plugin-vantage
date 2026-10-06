@@ -10,8 +10,8 @@ actionlint = "1.7.12"
 golangci-lint = "2.14.0"
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
 "aqua:reviewdog/reviewdog" = "0.21.2"
-"npm:@commitlint/cli" = "20.5.2"
-"npm:@commitlint/config-conventional" = "20.5.3"
+"npm:@commitlint/cli" = "21.2.3"
+"npm:@commitlint/config-conventional" = "21.2.3"
 "npm:markdownlint-cli2" = "0.23.3"
 
 [env]
