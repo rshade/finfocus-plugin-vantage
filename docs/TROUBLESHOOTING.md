@@ -17,16 +17,16 @@ credential.
 
 ## GetActualCost returns no rows
 
-Check that the request contains a time range, resource ID, and provider, and
+Check that the request contains a time range, resource ID, provider, and service, and
 that those values match the selected Cost Report. Vantage may not have imported
-recent cloud billing data yet. Provider and optional service filters are passed
+recent cloud billing data yet. Provider and required service filters are passed
 as VQL filters; inspect the plugin logs for the operation and trace ID when
 diagnosing a failed request. Credentials are not logged.
 
 ## Pagination or API errors
 
-The plugin returns the next Vantage page through `next_page_token`. Continue
-requesting pages until the token is empty. API throttling or availability
+Default queries fetch all pages. Explicitly paginated requests return the next
+Vantage page through `next_page_token`; continue until it is empty. API throttling or availability
 failures are returned as gRPC `UNAVAILABLE`; retry the RPC with backoff.
 
 ## Run the local integration test
@@ -34,5 +34,5 @@ failures are returned as gRPC `UNAVAILABLE`; retry the RPC with backoff.
 The mock API test runs without Docker or external services:
 
 ```sh
-go test ./internal/plugin -run TestGetActualCostAgainstMockVantageAPI -v
+go test ./internal/plugin -run TestGetActualCost -v
 ```
