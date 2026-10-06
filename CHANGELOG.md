@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [0.1.1](https://github.com/rshade/finfocus-plugin-vantage/compare/v0.1.0...v0.1.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **release:** accept release-please bumps, skip generated changelog lint ([#121](https://github.com/rshade/finfocus-plugin-vantage/issues/121)) ([5da035b](https://github.com/rshade/finfocus-plugin-vantage/commit/5da035bf002ee7629629510597db863fccfed81b))
+* **release:** follow the family release pattern so v0.1.1 ships correct archives ([#118](https://github.com/rshade/finfocus-plugin-vantage/issues/118)) ([87e6eca](https://github.com/rshade/finfocus-plugin-vantage/commit/87e6eca6a490250d5e3e3a2ff9fd515aa6e85b64))
+* **release:** match archive names used by URL installation ([084d826](https://github.com/rshade/finfocus-plugin-vantage/commit/084d826434a88bdd915f528ed76877ca6ed8c0dc))
+* restore release-please ownership of publication ([235dac8](https://github.com/rshade/finfocus-plugin-vantage/commit/235dac8fbc2cee13c9eba74de38980b6920acff7)), closes [#27](https://github.com/rshade/finfocus-plugin-vantage/issues/27)
+
 ## 0.1.0
 
 ### Added
