@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 1
 
       - name: Run OpenCode
-        uses: sst/opencode/github@v2.0.23
+        uses: sst/opencode/github@v2.0.24
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
