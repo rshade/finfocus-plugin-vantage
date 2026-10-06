@@ -568,7 +568,7 @@ func (p *Plugin) GetActualCost(ctx context.Context,
 - [x] gRPC server replaces Cobra CLI
 - [x] GetActualCost RPC implemented (unit and mocked Vantage API integration tests)
 - [x] Supports() + Name() RPC implemented
-- [ ] trace_id metadata handling (v0.7.0 feature)
+- [x] trace_id metadata handling (v0.7.0 feature; structured logs include trace_id and operation)
 - [x] Per-request credentials support (v0.7.0 feature, VT-3.5)
 - [x] FOCUS 1.4 fields support or explicit nil (invoice/commitment data unavailable; documented)
 - [x] ≥70% overall test coverage (90.2% overall; 81.6% internal/plugin)

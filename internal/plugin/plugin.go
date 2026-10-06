@@ -14,9 +14,11 @@ import (
 	"time"
 
 	openapiruntime "github.com/go-openapi/runtime"
+	"github.com/rs/zerolog"
 	"github.com/rshade/finfocus-spec/sdk/go/pluginsdk"
 	pbc "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -29,6 +31,7 @@ type Plugin struct {
 	version         string
 	clientFactory   func(string) (vantageapi.Client, error)
 	costReportToken string
+	logger          zerolog.Logger
 }
 
 // New creates a Vantage plugin instance.
@@ -36,6 +39,7 @@ func New(version string) *Plugin {
 	return &Plugin{
 		version:         version,
 		costReportToken: strings.TrimSpace(os.Getenv("FINFOCUS_VANTAGE_COST_REPORT_TOKEN")),
+		logger:          zerolog.New(os.Stderr).With().Timestamp().Logger(),
 		clientFactory: func(token string) (vantageapi.Client, error) {
 			return vantageapi.NewClient("", token)
 		},
@@ -47,14 +51,16 @@ func (p *Plugin) Name() string { return "vantage" }
 
 // GetProjectedCost is unsupported because Vantage provides actual billing data.
 func (p *Plugin) GetProjectedCost(
-	context.Context,
-	*pbc.GetProjectedCostRequest,
+	ctx context.Context,
+	_ *pbc.GetProjectedCostRequest,
 ) (*pbc.GetProjectedCostResponse, error) {
+	p.logRPC(ctx, "get_projected_cost")
 	return nil, status.Error(codes.Unimplemented, "projected cost is not supported")
 }
 
 // GetActualCost retrieves Vantage costs for the requested resource and period.
 func (p *Plugin) GetActualCost(ctx context.Context, req *pbc.GetActualCostRequest) (*pbc.GetActualCostResponse, error) {
+	p.logRPC(ctx, "get_actual_cost")
 	if err := validateRequest(req); err != nil {
 		return nil, err
 	}
@@ -386,17 +392,23 @@ func parseDate(s string) (time.Time, error) {
 }
 
 // GetPricingSpec is unsupported because Vantage is not a pricing catalog.
-func (p *Plugin) GetPricingSpec(context.Context, *pbc.GetPricingSpecRequest) (*pbc.GetPricingSpecResponse, error) {
+func (p *Plugin) GetPricingSpec(
+	ctx context.Context,
+	_ *pbc.GetPricingSpecRequest,
+) (*pbc.GetPricingSpecResponse, error) {
+	p.logRPC(ctx, "get_pricing_spec")
 	return nil, status.Error(codes.Unimplemented, "pricing specifications are not supported")
 }
 
 // EstimateCost is unsupported because this plugin reports imported actuals.
-func (p *Plugin) EstimateCost(context.Context, *pbc.EstimateCostRequest) (*pbc.EstimateCostResponse, error) {
+func (p *Plugin) EstimateCost(ctx context.Context, _ *pbc.EstimateCostRequest) (*pbc.EstimateCostResponse, error) {
+	p.logRPC(ctx, "estimate_cost")
 	return nil, status.Error(codes.Unimplemented, "cost estimation is not supported")
 }
 
 // Supports checks whether the resource provider can be represented in Vantage.
-func (p *Plugin) Supports(_ context.Context, req *pbc.SupportsRequest) (*pbc.SupportsResponse, error) {
+func (p *Plugin) Supports(ctx context.Context, req *pbc.SupportsRequest) (*pbc.SupportsResponse, error) {
+	p.logRPC(ctx, "supports")
 	if req == nil || req.GetResource() == nil {
 		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
 	}
@@ -413,6 +425,18 @@ func (p *Plugin) Supports(_ context.Context, req *pbc.SupportsRequest) (*pbc.Sup
 			Reason:    "provider is not a supported Vantage billing source",
 		}, nil
 	}
+}
+
+func (p *Plugin) logRPC(ctx context.Context, operation string) {
+	traceID := pluginsdk.TraceIDFromContext(ctx)
+	if traceID == "" {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if values := md.Get(pluginsdk.TraceIDMetadataKey); len(values) > 0 {
+				traceID = values[0]
+			}
+		}
+	}
+	p.logger.Info().Str(pluginsdk.FieldTraceID, traceID).Str("operation", operation).Msg("handling plugin request")
 }
 
 // ConsumesPerRequestCredentials opts into credentials in request metadata.

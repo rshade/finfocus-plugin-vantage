@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pagination and rate limit retry handling.
 - Added request mapping, usage, Vantage API, and FOCUS 1.4 field documentation.
 - Added unit and mocked Vantage API integration coverage for the RPC adapter.
+- Added trace_id and operation fields to structured RPC request logs.
 
 ---
 

@@ -1,14 +1,18 @@
 package plugin
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rshade/finfocus-spec/sdk/go/pluginsdk"
 	pbc "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -207,6 +211,28 @@ func TestRequestValidationAndMappingErrors(t *testing.T) {
 	_, _, dateErr := mapCostRow(testRequest(), "aws", &vantageapi.CostRow{Amount: "1", AccruedAt: "not-a-date"})
 	if status.Code(dateErr) != codes.DataLoss {
 		t.Fatalf("date status = %v", dateErr)
+	}
+}
+
+func TestRPCLogIncludesTraceIDFromMetadata(t *testing.T) {
+	var logBuffer bytes.Buffer
+	p := New("test")
+	p.logger = zerolog.New(&logBuffer)
+	traceID := "0123456789abcdef0123456789abcdef"
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(pluginsdk.TraceIDMetadataKey, traceID))
+	_, err := p.Supports(
+		ctx,
+		&pbc.SupportsRequest{Resource: &pbc.ResourceDescriptor{Provider: "aws", ResourceType: "ec2"}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := logBuffer.String()
+	if !strings.Contains(output, `"trace_id":"`+traceID+`"`) {
+		t.Fatalf("log omitted trace ID: %s", output)
+	}
+	if !strings.Contains(output, `"operation":"supports"`) {
+		t.Fatalf("log omitted operation: %s", output)
 	}
 }
 
