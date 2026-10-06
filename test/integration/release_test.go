@@ -39,9 +39,9 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	if manifest["."] == "" {
 		t.Fatal("root release version is missing")
 	}
-	// Release-please owns this value; no first release PR has merged.
-	if manifest["."] != "0.0.0" {
-		t.Fatal("manifest must remain 0.0.0 until the first release PR merges")
+	// v0.1.0 is published, so the manifest records it and the next release is v0.1.1.
+	if manifest["."] != "0.1.0" {
+		t.Fatal("manifest must record the published v0.1.0")
 	}
 }
 
@@ -50,11 +50,32 @@ func TestReleaseArchiveNaming(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// URL installation strips finfocus-plugin- from the repository name.
-	if !strings.Contains(string(config), "name_template: 'vantage_{{ .Version }}_") {
-		t.Fatal("archives must use the vantage prefix required by URL installation")
+	// Every plugin in the family names archives finfocus-plugin-<name>_<version>_<Os>_<arch>.
+	if !strings.Contains(string(config), "name_template: 'finfocus-plugin-vantage_{{ .Version }}_") {
+		t.Fatal("archives must use the finfocus-plugin-vantage prefix")
 	}
 	if !strings.Contains(string(config), "name_template: 'checksums.txt'") {
 		t.Fatal("installer requires checksums.txt")
+	}
+}
+
+func TestReleaseWorkflowRunsOnReleaseCreated(t *testing.T) {
+	workflow, err := os.ReadFile("../../.github/workflows/release.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(workflow)
+	// release-please creates the tag through the API, so a push-tag trigger never fires.
+	for _, want := range []string{
+		"types: [created]",
+		"workflow_dispatch:",
+		"ref: ${{ inputs.tag || github.event.release.tag_name }}",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("release.yml must contain %q", want)
+		}
+	}
+	if strings.Contains(text, "tags:") {
+		t.Fatal("release.yml must not trigger on pushed tags")
 	}
 }
