@@ -1,0 +1,12 @@
+{
+  "costs": [{
+    "amount": "4.25", "currency": "USD", "accrued_at": "2026-01-02",
+    "provider": "aws", "service": "Amazon Elastic Compute Cloud - Compute",
+    "account_id": "123", "billing_account_id": "123",
+    "usage": {"hour": "1"}, "usage_unit": "hour", "resource_id": "i-123",
+    "tags": []
+  }],
+  "total_cost": {"amount": "6.00", "currency": "USD"},
+  "total_usage": [],
+  "links": {"next": "/v2/costs?page=2"}
+}

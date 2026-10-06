@@ -71,3 +71,10 @@ at 200 ms and doubles; `Retry-After` and the Unix-time `x-rate-limit-reset`
 header can extend the delay up to one minute. Cancellation interrupts waits.
 The plugin spaces API requests at least one second apart across requests.
 API response bodies and credentials are not included in gRPC error messages.
+
+When pagination fields are absent, all Vantage pages are retrieved before
+returning, for compatibility with FinFocus hosts that consume one response.
+Repeated or backward page links fail with `DATA_LOSS`. Hosts that set a page
+size receive one page and must follow `next_page_token`. Legacy routing tags
+that duplicate descriptor dimensions are omitted from billing filters, because
+FinFocus can inject these tags during actual-cost request construction.

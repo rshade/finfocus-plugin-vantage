@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/rshade/finfocus-plugin-vantage/internal/vantageapi"
@@ -88,7 +89,46 @@ func (p *Plugin) GetActualCost(ctx context.Context, req *pbc.GetActualCostReques
 	if err != nil {
 		return nil, upstreamStatus(err)
 	}
+	if req.GetPageSize() <= 0 && req.GetPageToken() == "" {
+		resp, err = p.remainingCosts(ctx, client, req, provider, resp)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return mapCosts(req, provider, resp)
+}
+
+// Older FinFocus callers do not follow pagination tokens. A request without
+// pagination fields retrieves the complete resource window before returning.
+func (p *Plugin) remainingCosts(ctx context.Context, client vantageapi.Client, req *pbc.GetActualCostRequest,
+	provider string, response *vantageapi.CostsResponse) (*vantageapi.CostsResponse, error) {
+	if response == nil {
+		return nil, status.Error(codes.DataLoss, "Vantage returned no response")
+	}
+	pageReq := proto.CloneOf(req)
+	page := int32(1)
+	for response.Links != nil && response.Links.Next != nil && *response.Links.Next != "" {
+		token, err := nextPageToken(*response.Links.Next)
+		if err != nil {
+			return nil, status.Error(codes.DataLoss, "Vantage returned malformed pagination link")
+		}
+		next, err := requestPage(token)
+		if err != nil || next <= page {
+			return nil, status.Error(codes.DataLoss, "Vantage pagination did not advance")
+		}
+		pageReq.PageToken = token
+		more, err := p.queryCosts(ctx, client, pageReq, provider)
+		if err != nil {
+			return nil, upstreamStatus(err)
+		}
+		if more == nil {
+			return nil, status.Error(codes.DataLoss, "Vantage returned no response")
+		}
+		response.Costs = append(response.Costs, more.Costs...)
+		response.Links = more.Links
+		page = next
+	}
+	return response, nil
 }
 
 func validateRequest(req *pbc.GetActualCostRequest) error {
@@ -208,7 +248,7 @@ func (p *Plugin) queryCosts(
 	params := &vantageapi.GetCostsParams{
 		CostReportToken: &p.costReportToken,
 		StartDate:       strPtr(start.UTC().Format("2006-01-02")), EndDate: strPtr(end.UTC().Format("2006-01-02")),
-		DateBin: strPtr("day"), Groupings: []string{"provider", "service", "account_id", "region", "resource_id"},
+		DateBin: strPtr("day"), Groupings: []string{providerTag, serviceTag, "account_id", regionTag, "resource_id"},
 		Filter: &filter, Limit: &limit, Page: &page,
 		Settings: billedCostSettings(),
 	}
@@ -338,7 +378,7 @@ func mapCosts(
 		}
 		result.Results = append(result.Results, item)
 	}
-	if resp.Links != nil && resp.Links.Next != nil {
+	if resp.Links != nil && resp.Links.Next != nil && *resp.Links.Next != "" {
 		next, err := nextPageToken(*resp.Links.Next)
 		if err != nil {
 			return nil, status.Error(codes.DataLoss, "Vantage returned malformed pagination link")
@@ -456,6 +496,7 @@ const (
 	hoursPerDay = 24
 	providerTag = "provider"
 	serviceTag  = "service"
+	regionTag   = "region"
 	awsProvider = "aws"
 )
 
@@ -475,9 +516,8 @@ func buildFilter(req *pbc.GetActualCostRequest, provider string) string {
 		parts = append(parts, fmt.Sprintf("costs.region = '%s'", vqlQuote(region)))
 	}
 	keys := make([]string, 0, len(req.GetTags()))
-	for k := range req.GetTags() {
-		if k == serviceTag || req.GetResource() == nil &&
-			(k == providerTag || k == "resource_type" || k == "sku" || k == "region") {
+	for k, v := range req.GetTags() {
+		if k == serviceTag || isRoutingTag(req, k, v) {
 			continue
 		}
 		keys = append(keys, k)
@@ -491,6 +531,25 @@ func buildFilter(req *pbc.GetActualCostRequest, provider string) string {
 		parts = append(parts, "(tags.name, tags.value) IN ("+strings.Join(tags, ", ")+")")
 	}
 	return strings.Join(parts, " AND ")
+}
+
+func isRoutingTag(req *pbc.GetActualCostRequest, key, value string) bool {
+	resource := req.GetResource()
+	if resource == nil {
+		return key == providerTag || key == "resource_type" || key == "sku" || key == regionTag
+	}
+	switch key {
+	case providerTag:
+		return value == resource.GetProvider()
+	case "resource_type":
+		return value == resource.GetResourceType()
+	case "sku":
+		return value == resource.GetSku()
+	case regionTag:
+		return value == resource.GetRegion()
+	default:
+		return false
+	}
 }
 
 func providerFromARN(arn string) string {

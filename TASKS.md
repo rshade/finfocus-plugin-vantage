@@ -644,3 +644,18 @@ and caller billing account overrides. Live-account validation remains separate.
   are discovered/invoked)
 - **Design Document**: `pulumi_cost_vantage_adapter_design_draft_v_0.md` (OLD;
   needs update post-architecture-change)
+
+## Acceptance work completed after the dependency merges
+
+- VT-4.1: Added versioned mock response and expected mapping fixtures. Current
+  race-tested coverage is above the task's plugin and client requirements.
+- VT-4.2: The mock API test now crosses the actual SDK gRPC server and its
+  credential middleware. It verifies bearer authentication, documented query
+  parameters, 429 recovery, two-page retrieval, and the golden mapped results.
+- VT-3.5: Real gRPC tests verify per-request credential metadata, missing and
+  oversized credential errors, and the advertised credential capability.
+- VT-1.3 / VT-5.1: A subprocess test builds the executable, checks `--version`,
+  connects to its announced port, queries Name/GetPluginInfo, and sends SIGTERM.
+- VT-4.3: FinFocus core successfully launches the plugin and retrieves USD 6.00
+  from a local mock Vantage API for a Pulumi state resource. This acceptance test
+  is enabled with `FINFOCUS_CORE_BINARY`; live Vantage validation is separate.

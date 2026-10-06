@@ -119,7 +119,9 @@ func TestGetActualCostPaginatesUsingVantagePageLinks(t *testing.T) {
 	next := "https://api.vantage.sh/v2/costs?page=2&limit=50"
 	c := &fakeClient{response: &vantageapi.CostsResponse{Links: &vantageapi.PaginationLinks{Next: &next}}}
 	p := testPlugin(c)
-	resp, err := p.GetActualCost(context.Background(), testRequest())
+	firstRequest := testRequest()
+	firstRequest.PageSize = 50
+	resp, err := p.GetActualCost(context.Background(), firstRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +130,7 @@ func TestGetActualCostPaginatesUsingVantagePageLinks(t *testing.T) {
 	}
 	pageToken := resp.GetNextPageToken()
 	req := testRequest()
+	req.PageSize = 50
 	req.PageToken = pageToken
 	if _, callErr := p.GetActualCost(context.Background(), req); callErr != nil {
 		t.Fatal(callErr)
