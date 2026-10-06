@@ -33,6 +33,7 @@ func (f *fakeClient) GetCosts(_ context.Context, p *vantageapi.GetCostsParams) (
 func testPlugin(c *fakeClient) *Plugin {
 	p := New("test")
 	p.costReportToken = "report"
+	p.requestInterval = 0
 	p.clientFactory = func(string) (vantageapi.Client, error) { return c, nil }
 	return p
 }
@@ -43,7 +44,7 @@ func testRequest() *pbc.GetActualCostRequest {
 		ResourceId: "i-123",
 		Start:      timestamppb.New(now),
 		End:        timestamppb.New(now.Add(24 * time.Hour)),
-		Tags:       map[string]string{"provider": "aws"},
+		Tags:       map[string]string{"provider": "aws", "resource_type": "aws:ec2/instance:Instance"},
 	}
 }
 
@@ -194,7 +195,7 @@ func TestRequestValidationAndMappingErrors(t *testing.T) {
 		t.Fatalf("valid request rejected: %v", err)
 	}
 	invalid := testRequest()
-	invalid.Tags = map[string]string{"provider": "aws", "bad key": "x"}
+	invalid.Tags = map[string]string{"provider": "aws", "bad\nkey": "x"}
 	if status.Code(validateRequest(invalid)) != codes.InvalidArgument {
 		t.Fatal("unsafe label key accepted")
 	}

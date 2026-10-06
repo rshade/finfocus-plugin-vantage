@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -19,6 +22,59 @@ import (
 // The plugin owns this interface to decouple from generated code changes.
 type Client interface {
 	GetCosts(ctx context.Context, params *GetCostsParams) (*CostsResponse, error)
+}
+
+// APIError preserves status and retry timing without exposing the response body.
+type APIError struct {
+	StatusCode int
+	RetryAfter time.Duration
+	err        error
+}
+
+func (e *APIError) Error() string { return fmt.Sprintf("Vantage API returned HTTP %d", e.StatusCode) }
+
+// Unwrap preserves the original error for context cancellation and diagnostics.
+func (e *APIError) Unwrap() error { return e.err }
+
+type responseTransport struct {
+	status  int
+	headers http.Header
+}
+
+const maxRetrySeconds = 60
+
+func (t *responseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	response, err := http.DefaultTransport.RoundTrip(req)
+	if response != nil {
+		t.status = response.StatusCode
+		t.headers = response.Header.Clone()
+	}
+	return response, err
+}
+
+func retryDelay(headers http.Header, now time.Time) time.Duration {
+	var delay time.Duration
+	if seconds, err := strconv.ParseInt(headers.Get("Retry-After"), 10, 64); err == nil && seconds > 0 {
+		// Cap before converting to a duration to prevent integer overflow.
+		if seconds > maxRetrySeconds {
+			seconds = maxRetrySeconds
+		}
+		delay = time.Duration(seconds) * time.Second
+	} else if retryAt, parseErr := http.ParseTime(headers.Get("Retry-After")); parseErr == nil {
+		delay = retryAt.Sub(now)
+	}
+	if reset, err := strconv.ParseInt(headers.Get("X-Rate-Limit-Reset"), 10, 64); err == nil {
+		if resetDelay := time.Unix(reset, 0).Sub(now); resetDelay > delay {
+			delay = resetDelay
+		}
+	}
+	if delay < 0 {
+		return 0
+	}
+	if delay > time.Minute {
+		return time.Minute
+	}
+	return delay
 }
 
 // GetCostsParams represents parameters for the GET /costs operation.
@@ -191,6 +247,12 @@ func (c *impl) GetCosts(ctx context.Context, params *GetCostsParams) (*CostsResp
 	// Build query parameters for the generated client
 	p := costs.NewGetCostsParams()
 	p.Context = ctx
+	transport := &responseTransport{}
+	p.HTTPClient = &http.Client{
+		Transport:     transport,
+		Timeout:       time.Minute,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+	}
 
 	// Set authentication and parameters
 	if params.CostReportToken != nil {
@@ -229,6 +291,13 @@ func (c *impl) GetCosts(ctx context.Context, params *GetCostsParams) (*CostsResp
 	// Call the generated client with nil authInfo (authentication is on the transport)
 	result, err := c.client.Costs.GetCosts(p, nil)
 	if err != nil {
+		if transport.status >= http.StatusBadRequest {
+			return nil, &APIError{
+				StatusCode: transport.status,
+				RetryAfter: retryDelay(transport.headers, time.Now()),
+				err:        err,
+			}
+		}
 		return nil, fmt.Errorf("failed to get costs from Vantage API: %w", err)
 	}
 
@@ -280,6 +349,9 @@ func convertCostRows(costs []*models.Cost) []*CostRow {
 
 	rows := make([]*CostRow, len(costs))
 	for i, c := range costs {
+		if c == nil {
+			continue
+		}
 		rows[i] = &CostRow{
 			AccruedAt:        c.AccruedAt,
 			Amount:           c.Amount,
@@ -312,6 +384,9 @@ func convertUsageAmounts(usage []*models.UsagePartial) []*UsageAmount {
 
 	amounts := make([]*UsageAmount, len(usage))
 	for i, u := range usage {
+		if u == nil {
+			continue
+		}
 		amounts[i] = &UsageAmount{
 			Amount: u.Amount,
 			Unit:   u.Unit,

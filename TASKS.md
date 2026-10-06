@@ -1,5 +1,29 @@
 # FinFocus Vantage Plugin - Development Tasks to v0.1.0
 
+## Release and tag rules (family standard, added 2026-10-06)
+
+Every release-please config in this family needs these three settings on the `.` package, and a test that fails
+when any is wrong:
+
+1. `"include-component-in-tag": false`. Without it a config that sets `package-name` creates tags like
+   `finfocus-plugin-<name>-v0.1.0`. `release.yml` runs on `release: created`, GoReleaser parses the tag as semver,
+   fails, and the release has no binaries. opencost hit this on 2026-10-06; azure-public sets the key.
+2. `"initial-version": "0.1.0"`. Without it the first release PR can propose 1.0.0 (opencost issue 77).
+3. `.release-please-manifest.json` keeps `"."` at `0.0.0` until the first release PR merges. A `0.1.0` before then
+   records 0.1.0 as already shipped.
+
+The test reads `release-please-config.json` and the manifest (`jq` or Go). Break check: delete each key in turn
+and the test fails.
+
+A merged release PR is not a release. Done means: the tag is plain `vX.Y.Z`, the GoReleaser run is green, and
+`gh release view vX.Y.Z --json assets --jq '.assets | length'` is above 0. Release tooling (goreleaser,
+release-please, Homebrew, Docker) is ask-first: change it only when the task or the invocation says so. The agent
+never deletes or moves a tag or release; the owner re-cuts one.
+
+State of this repo on 2026-10-06: not compliant. `package-name` is set, `include-component-in-tag` and
+`initial-version` are absent, the manifest is `0.0.0`, and no tag exists. Fix the config before the first release
+PR merges.
+
 ## Current State
 
 ### Repository Status
@@ -246,6 +270,12 @@ func (p *Plugin) GetActualCost(ctx context.Context,
     malformed)
 
 #### VT-2.2: Implement GetActualCost Core Logic (BLOCKED-ON-CREDENTIALS)
+
+**Implementation complete:** Current resource descriptor support, documented
+VQL filters, required service resolution, explicit billed cost settings,
+context status preservation, bounded 429/5xx retries, and shared API pacing.
+Regression tests exercise query construction, redaction, window boundaries,
+and caller billing account overrides. Live-account validation remains separate.
 
 - **Related issues**: [#16](https://github.com/rshade/finfocus-plugin-vantage/issues/16)
 - **Description**: Fetch actual costs from Vantage API, map to finfocus-spec

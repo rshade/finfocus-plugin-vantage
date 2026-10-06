@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	openapiruntime "github.com/go-openapi/runtime"
@@ -32,6 +34,9 @@ type Plugin struct {
 	clientFactory   func(string) (vantageapi.Client, error)
 	costReportToken string
 	logger          zerolog.Logger
+	requestMu       sync.Mutex
+	nextRequest     time.Time
+	requestInterval time.Duration
 }
 
 // New creates a Vantage plugin instance.
@@ -40,8 +45,9 @@ func New(version string) *Plugin {
 		version:         version,
 		costReportToken: strings.TrimSpace(os.Getenv("FINFOCUS_VANTAGE_COST_REPORT_TOKEN")),
 		logger:          zerolog.New(os.Stderr).With().Timestamp().Logger(),
+		requestInterval: time.Second,
 		clientFactory: func(token string) (vantageapi.Client, error) {
-			return vantageapi.NewClient("", token)
+			return vantageapi.NewClient(os.Getenv("FINFOCUS_VANTAGE_BASE_URL"), token)
 		},
 	}
 }
@@ -68,6 +74,12 @@ func (p *Plugin) GetActualCost(ctx context.Context, req *pbc.GetActualCostReques
 	if provider == "" {
 		return nil, status.Error(codes.InvalidArgument, "provider is required in tags[provider] or a supported AWS ARN")
 	}
+	if requestService(req) == "" {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"Vantage service is required in tags[service] for this resource",
+		)
+	}
 	client, err := p.clientForRequest(ctx)
 	if err != nil {
 		return nil, err
@@ -92,8 +104,8 @@ func validateRequest(req *pbc.GetActualCostRequest) error {
 	if !req.GetStart().AsTime().Before(req.GetEnd().AsTime()) {
 		return status.Error(codes.InvalidArgument, "start must be before end")
 	}
-	for key := range req.GetTags() {
-		if key != providerTag && key != serviceTag && !validLabelKey(key) {
+	for key, value := range req.GetTags() {
+		if strings.TrimSpace(key) == "" || strings.ContainsAny(key+value, "\x00\r\n") {
 			return status.Error(codes.InvalidArgument, "invalid Vantage label key")
 		}
 	}
@@ -104,11 +116,52 @@ func validateRequest(req *pbc.GetActualCostRequest) error {
 }
 
 func requestProvider(req *pbc.GetActualCostRequest) string {
+	if provider := req.GetResource().GetProvider(); provider != "" {
+		return strings.ToLower(strings.TrimSpace(provider))
+	}
 	provider := strings.TrimSpace(req.GetTags()["provider"])
 	if provider == "" {
 		provider = providerFromARN(req.GetArn())
 	}
-	return provider
+	return strings.ToLower(provider)
+}
+
+func requestService(req *pbc.GetActualCostRequest) string {
+	if service := strings.TrimSpace(req.GetTags()[serviceTag]); service != "" {
+		return service
+	}
+	if requestProvider(req) != awsProvider {
+		return ""
+	}
+	resourceType := req.GetResource().GetResourceType()
+	if resourceType == "" {
+		resourceType = req.GetTags()["resource_type"]
+	}
+	if service := awsService(resourceType); service != "" {
+		return service
+	}
+	parts := strings.SplitN(req.GetArn(), ":", arnPartsCount)
+	if len(parts) == arnPartsCount && parts[0] == "arn" {
+		return awsService(parts[2])
+	}
+	return ""
+}
+
+func awsService(resourceType string) string {
+	switch resourceType {
+	case "aws:ec2/instance:Instance", "ec2":
+		return "Amazon Elastic Compute Cloud - Compute"
+	case "aws:s3/bucket:Bucket", "s3":
+		return "Amazon Simple Storage Service"
+	case "aws:lambda/function:Function", "lambda":
+		return "AWS Lambda"
+	case "aws:rds/instance:Instance", "rds":
+		return "Amazon Relational Database Service"
+	case "aws:dynamodb/table:Table", "dynamodb":
+		return "Amazon DynamoDB"
+	default:
+		return ""
+	}
 }
 
 func (p *Plugin) clientForRequest(ctx context.Context) (vantageapi.Client, error) {
@@ -157,13 +210,21 @@ func (p *Plugin) queryCosts(
 		StartDate:       strPtr(start.UTC().Format("2006-01-02")), EndDate: strPtr(end.UTC().Format("2006-01-02")),
 		DateBin: strPtr("day"), Groupings: []string{"provider", "service", "account_id", "region", "resource_id"},
 		Filter: &filter, Limit: &limit, Page: &page,
+		Settings: billedCostSettings(),
 	}
 	for attempt := 0; ; attempt++ {
+		if waitErr := p.waitForRequest(ctx); waitErr != nil {
+			return nil, waitErr
+		}
 		resp, queryErr := client.GetCosts(ctx, params)
-		if queryErr == nil || !isRateLimited(queryErr) || attempt >= maxRateLimitRetries {
+		if queryErr == nil || !isRetryable(queryErr) || attempt >= maxRateLimitRetries {
 			return resp, queryErr
 		}
 		delay := rateLimitBaseDelay << attempt
+		var apiErr *vantageapi.APIError
+		if errors.As(queryErr, &apiErr) && apiErr.RetryAfter > delay {
+			delay = apiErr.RetryAfter
+		}
 		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
@@ -174,27 +235,77 @@ func (p *Plugin) queryCosts(
 	}
 }
 
+func billedCostSettings() *vantageapi.CostSettings {
+	include, amortize := true, false
+	return &vantageapi.CostSettings{
+		Amortize: &amortize, IncludeCredits: &include, IncludeRefunds: &include,
+		IncludeDiscounts: &include, IncludeTax: &include, AggregateBy: strPtr("cost"),
+	}
+}
+
+func (p *Plugin) waitForRequest(ctx context.Context) error {
+	p.requestMu.Lock()
+	defer p.requestMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if delay := time.Until(p.nextRequest); delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	p.nextRequest = time.Now().Add(p.requestInterval)
+	return nil
+}
+
 const (
 	maxRateLimitRetries = 3
 	rateLimitBaseDelay  = 200 * time.Millisecond
 )
 
-func isRateLimited(err error) bool {
+func httpStatus(err error) int {
+	var wrapped *vantageapi.APIError
+	if errors.As(err, &wrapped) {
+		return wrapped.StatusCode
+	}
 	var apiErr *openapiruntime.APIError
-	return errors.As(err, &apiErr) && apiErr.Code == http.StatusTooManyRequests
+	if errors.As(err, &apiErr) {
+		return apiErr.Code
+	}
+	var coded interface{ Code() int }
+	if errors.As(err, &coded) {
+		return coded.Code()
+	}
+	return 0
+}
+
+func isRetryable(err error) bool {
+	code := httpStatus(err)
+	return code == http.StatusTooManyRequests || code == http.StatusInternalServerError ||
+		code == http.StatusBadGateway || code == http.StatusServiceUnavailable || code == http.StatusGatewayTimeout
 }
 
 func upstreamStatus(err error) error {
-	var apiErr *openapiruntime.APIError
-	if errors.As(err, &apiErr) {
-		switch apiErr.Code {
-		case http.StatusUnauthorized, http.StatusForbidden:
-			return status.Error(codes.Unauthenticated, "Vantage rejected the configured credential")
-		case http.StatusBadRequest:
-			return status.Error(codes.InvalidArgument, "Vantage rejected the cost query")
-		}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return status.FromContextError(err).Err()
 	}
-	return status.Errorf(codes.Unavailable, "Vantage cost query failed: %v", err)
+	switch httpStatus(err) {
+	case http.StatusUnauthorized:
+		return status.Error(codes.Unauthenticated, "Vantage rejected the configured credential")
+	case http.StatusForbidden:
+		return status.Error(codes.PermissionDenied, "Vantage denied access to the selected report")
+	case http.StatusBadRequest, http.StatusUnprocessableEntity:
+		return status.Error(codes.InvalidArgument, "Vantage rejected the cost query")
+	case http.StatusNotFound:
+		return status.Error(codes.NotFound, "Vantage cost report was not found")
+	case http.StatusPaymentRequired:
+		return status.Error(codes.FailedPrecondition, "Vantage account cannot query costs")
+	}
+	return status.Error(codes.Unavailable, "Vantage cost query failed")
 }
 
 func mapCosts(
@@ -203,6 +314,9 @@ func mapCosts(
 	resp *vantageapi.CostsResponse,
 ) (*pbc.GetActualCostResponse, error) {
 	result := &pbc.GetActualCostResponse{}
+	if resp == nil {
+		return nil, status.Error(codes.DataLoss, "Vantage returned no response")
+	}
 	currency := ""
 	for _, row := range resp.Costs {
 		if row == nil {
@@ -211,6 +325,10 @@ func mapCosts(
 		item, rowCurrency, err := mapCostRow(req, provider, row)
 		if err != nil {
 			return nil, err
+		}
+		if item.GetTimestamp().AsTime().Before(req.GetStart().AsTime()) ||
+			!item.GetTimestamp().AsTime().Before(req.GetEnd().AsTime()) {
+			continue
 		}
 		if rowCurrency != "" {
 			if currency != "" && currency != rowCurrency {
@@ -227,13 +345,6 @@ func mapCosts(
 		}
 		result.NextPageToken = next
 	}
-	if result.GetNextPageToken() == "" {
-		if len(result.GetResults()) > math.MaxInt32 {
-			result.TotalCount = math.MaxInt32
-		} else {
-			result.TotalCount = int32(len(result.GetResults())) //nolint:gosec // bounded above by MaxInt32
-		}
-	}
 	return result, nil
 }
 
@@ -242,6 +353,9 @@ func mapCostRow(
 	provider string,
 	row *vantageapi.CostRow,
 ) (*pbc.ActualCostResult, string, error) {
+	if row.Currency == "" {
+		return nil, "", status.Error(codes.DataLoss, "Vantage returned no currency")
+	}
 	amount, err := strconv.ParseFloat(row.Amount, 64)
 	if err != nil || math.IsNaN(amount) || math.IsInf(amount, 0) {
 		return nil, "", status.Error(codes.DataLoss, "Vantage returned malformed cost amount")
@@ -253,6 +367,11 @@ func mapCostRow(
 	item := &pbc.ActualCostResult{Timestamp: timestamppb.New(at), Cost: amount, Source: "vantage"}
 	if focus := buildFocusRecord(req, provider, row, amount, at); focus != nil {
 		item.FocusRecord = focus
+	} else if row.Currency != "USD" {
+		return nil, "", status.Error(
+			codes.FailedPrecondition,
+			"non-USD costs require sufficient source fields for a FOCUS record",
+		)
 	}
 	return item, row.Currency, nil
 }
@@ -290,8 +409,8 @@ func buildFocusRecord(
 	amount float64,
 	at time.Time,
 ) *pbc.FocusCostRecord {
-	account := ""
-	if row.BillingAccountID != nil {
+	account := req.GetBillingAccountId()
+	if account == "" && row.BillingAccountID != nil {
 		account = *row.BillingAccountID
 	}
 	if account == "" && row.AccountID != nil {
@@ -305,7 +424,11 @@ func buildFocusRecord(
 		strings.TrimSpace(*row.UsageUnit) == "" {
 		return nil
 	}
-	usage, err := strconv.ParseFloat(fmt.Sprint(row.Usage), 64)
+	usageValue := row.Usage
+	if byUnit, ok := row.Usage.(map[string]interface{}); ok {
+		usageValue = byUnit[*row.UsageUnit]
+	}
+	usage, err := strconv.ParseFloat(fmt.Sprint(usageValue), 64)
 	if err != nil || usage <= 0 || math.IsNaN(usage) || math.IsInf(usage, 0) {
 		return nil
 	}
@@ -333,23 +456,39 @@ const (
 	hoursPerDay = 24
 	providerTag = "provider"
 	serviceTag  = "service"
+	awsProvider = "aws"
 )
 
 func strPtr(s string) *string { return &s }
 
 func buildFilter(req *pbc.GetActualCostRequest, provider string) string {
-	parts := []string{fmt.Sprintf("provider = '%s'", vqlQuote(provider))}
-	if service := strings.TrimSpace(req.GetTags()[serviceTag]); service != "" {
-		parts = append(parts, fmt.Sprintf("service = '%s'", vqlQuote(service)))
+	resourceID := req.GetResourceId()
+	if req.GetArn() != "" {
+		resourceID = req.GetArn()
 	}
-	if req.GetResourceId() != "" {
-		parts = append(parts, fmt.Sprintf("resource_id = '%s'", vqlQuote(req.GetResourceId())))
+	parts := []string{
+		fmt.Sprintf("costs.provider = '%s'", vqlQuote(provider)),
+		fmt.Sprintf("costs.service = '%s'", vqlQuote(requestService(req))),
+		fmt.Sprintf("costs.resource_id = '%s'", vqlQuote(resourceID)),
 	}
-	for k, v := range req.GetTags() {
-		if k == providerTag || k == serviceTag {
+	if region := req.GetResource().GetRegion(); region != "" {
+		parts = append(parts, fmt.Sprintf("costs.region = '%s'", vqlQuote(region)))
+	}
+	keys := make([]string, 0, len(req.GetTags()))
+	for k := range req.GetTags() {
+		if k == serviceTag || req.GetResource() == nil &&
+			(k == providerTag || k == "resource_type" || k == "sku" || k == "region") {
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("labels.%s = '%s'", k, vqlQuote(v)))
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	if len(keys) > 0 {
+		tags := make([]string, 0, len(keys))
+		for _, k := range keys {
+			tags = append(tags, fmt.Sprintf("('%s', '%s')", vqlQuote(k), vqlQuote(req.GetTags()[k])))
+		}
+		parts = append(parts, "(tags.name, tags.value) IN ("+strings.Join(tags, ", ")+")")
 	}
 	return strings.Join(parts, " AND ")
 }
@@ -369,18 +508,9 @@ func providerFromARN(arn string) string {
 
 const arnPartsCount = 6
 
-func validLabelKey(key string) bool {
-	for i, r := range key {
-		valid := r == '_' || r == '.' || r == '-' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' ||
-			i > 0 && r >= '0' && r <= '9'
-		if !valid {
-			return false
-		}
-	}
-	return key != ""
+func vqlQuote(s string) string {
+	return strings.NewReplacer("\\", "\\\\", "'", "\\'").Replace(s)
 }
-
-func vqlQuote(s string) string { return strings.ReplaceAll(s, "'", "\\'") }
 
 func parseDate(s string) (time.Time, error) {
 	for _, layout := range []string{time.RFC3339, "2006-01-02"} {
