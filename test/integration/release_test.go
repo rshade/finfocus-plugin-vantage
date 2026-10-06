@@ -3,7 +3,6 @@ package integration_test
 import (
 	"encoding/json"
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -40,9 +39,9 @@ func TestFirstReleaseConfiguration(t *testing.T) {
 	if manifest["."] == "" {
 		t.Fatal("root release version is missing")
 	}
-	// v0.1.0 has been published; later release PRs may advance the manifest.
-	if manifest["."] == "0.0.0" || !regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(manifest["."]) {
-		t.Fatal("manifest must record a published semantic version")
+	// Release-please owns this value; no first release PR has merged.
+	if manifest["."] != "0.0.0" {
+		t.Fatal("manifest must remain 0.0.0 until the first release PR merges")
 	}
 }
 

@@ -24,6 +24,19 @@ Configuration fixed in `b3150ec`: plain tags and initial version are explicit; r
 missing keys and a premature manifest version. The manifest remains `0.0.0` until publication.
 This repository runs GoReleaser on tag pushes.
 
+## Release ownership correction
+
+Release-please owns release creation and manifest updates. The agent mistakenly
+created the plain `v0.1.0` tag and triggered publication directly at `292dc65`.
+The subsequent archive repair also finished before the user's interruption.
+The temporary repair workflow has been removed and the manifest restored to
+`0.0.0` because no release-please release PR has merged. The existing tag and
+release have not been deleted or moved. Their disposition belongs to the owner.
+
+VT-5.2 remains pending through the intended release-please process. Its workflow
+currently fails because `RELEASE_PLEASE_TOKEN` is not configured. Do not bypass
+release-please by creating tags, releases, or manually advancing its manifest.
+
 ## Scope and status
 
 This plan covers the first **gRPC actual-cost plugin** release. The old sync
