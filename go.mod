@@ -6,9 +6,9 @@ require (
 	github.com/go-openapi/runtime v0.33.0
 	github.com/go-openapi/strfmt v0.27.0
 	github.com/rs/zerolog v1.35.1
-	github.com/rshade/finfocus-spec v0.7.0
+	github.com/rshade/finfocus-spec v0.7.5
 	github.com/stretchr/testify v1.12.1
-	github.com/vantage-sh/vantage-go v0.1.13
+	github.com/vantage-sh/vantage-go v0.1.14
 	golang.org/x/text v0.42.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
