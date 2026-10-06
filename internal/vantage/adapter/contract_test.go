@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rshade/pulumicost-plugin-vantage/internal/vantage/client"
+	"github.com/rshade/finfocus-plugin-vantage/internal/vantage/client"
 )
 
 func checkWiremockRunning(t *testing.T) {

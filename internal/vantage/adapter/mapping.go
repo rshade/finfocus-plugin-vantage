@@ -3,10 +3,10 @@ package adapter
 import (
 	"context"
 
-	"github.com/rshade/pulumicost-plugin-vantage/internal/vantage/client"
+	"github.com/rshade/finfocus-plugin-vantage/internal/vantage/client"
 )
 
-// mapVantageRowToCostRecord converts a Vantage CostRow to a PulumiCost CostRecord.
+// mapVantageRowToCostRecord converts a Vantage CostRow to a FinFocus CostRecord.
 func (a *Adapter) mapVantageRowToCostRecord(
 	row client.CostRow,
 	query client.Query,
@@ -142,25 +142,25 @@ func (a *Adapter) addDiagnostics(record *CostRecord, _ client.CostRow) {
 // logMissingField logs a missing field diagnostic with structured fields.
 func (a *Adapter) logMissingField(fieldName, reason string, record *CostRecord) {
 	a.logger.Warn(context.TODO(), "Missing field detected", map[string]interface{}{
-		"adapter":   "vantage",
-		"operation": "field_validation",
-		"field":     fieldName,
-		"reason":    reason,
-		"timestamp": record.Timestamp.Format("2006-01-02"),
-		"provider":  record.Provider,
-		"service":   record.Service,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpFieldValid,
+		"field":           fieldName,
+		"reason":          reason,
+		"timestamp":       record.Timestamp.Format("2006-01-02"),
+		logFieldProvider:  record.Provider,
+		logFieldService:   record.Service,
 	})
 }
 
 // logWarning logs a diagnostic warning with structured fields.
 func (a *Adapter) logWarning(warning, description string, record *CostRecord) {
 	a.logger.Warn(context.TODO(), "Data quality warning", map[string]interface{}{
-		"adapter":     "vantage",
-		"operation":   "data_validation",
-		"warning":     warning,
-		"description": description,
-		"timestamp":   record.Timestamp.Format("2006-01-02"),
-		"provider":    record.Provider,
-		"service":     record.Service,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: "data_validation",
+		"warning":         warning,
+		"description":     description,
+		"timestamp":       record.Timestamp.Format("2006-01-02"),
+		logFieldProvider:  record.Provider,
+		logFieldService:   record.Service,
 	})
 }

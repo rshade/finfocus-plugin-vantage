@@ -90,9 +90,9 @@ params:
 	require.NoError(t, err)
 
 	// Set environment variables.
-	t.Setenv("PULUMICOST_VANTAGE_TOKEN", "env-token-override")
-	t.Setenv("PULUMICOST_VANTAGE_START_DATE", "2024-02-01")
-	t.Setenv("PULUMICOST_VANTAGE_END_DATE", "2024-11-01")
+	t.Setenv("FINFOCUS_VANTAGE_TOKEN", "env-token-override")
+	t.Setenv("FINFOCUS_VANTAGE_START_DATE", "2024-02-01")
+	t.Setenv("FINFOCUS_VANTAGE_END_DATE", "2024-11-01")
 
 	// Load the config.
 	cfg, err := LoadConfig(configPath)

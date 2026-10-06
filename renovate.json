@@ -4,7 +4,7 @@
   "extends": [
     "config:recommended"
   ],
-  "description": "Renovate config for pulumicost-plugin-vantage. Disabled by default. Enable if needed for advanced dependency management.",
+  "description": "Renovate config for finfocus-plugin-vantage. Disabled by default. Enable if needed for advanced dependency management.",
   "schedule": [
     "before 3am on Monday"
   ],

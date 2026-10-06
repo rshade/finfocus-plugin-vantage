@@ -22,7 +22,7 @@ deterministic, and free of secrets.
 
 ## INPUTS
 
-Repo: github.com/rshade/pulumicost-plugin-vantage
+Repo: github.com/rshade/finfocus-plugin-vantage
 Language: Go 1.24.7+
 Existing design: adapter with Vantage client, mapping, incremental sync,
 forecast; Wiremock contract tests; Makefile targets.
@@ -88,7 +88,7 @@ harness so the project can build, test, and release reproducibly.
 
 - Ensure targets: build, test, lint, fmt, demo, wiremock-up,
   wiremock-down
-- demo: bring Wiremock up, run `pulumicost-vantage pull --config
+- demo: bring Wiremock up, run `finfocus-vantage pull --config
   ./config.example.yaml` against mocks, print first 10 records (assume a
   local file sink target)
 - fmt runs goimports and go fmt

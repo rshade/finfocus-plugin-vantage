@@ -1,15 +1,15 @@
 # Configuration Reference
 
-This document describes the configuration options for the PulumiCost Vantage
+This document describes the configuration options for the FinFocus Vantage
 plugin.
 
 ## Configuration File Format
 
 The plugin accepts configuration via YAML files. Environment variable
 substitution is supported using `${VAR_NAME}` syntax (e.g.,
-`${PULUMICOST_VANTAGE_TOKEN}`).
+`${FINFOCUS_VANTAGE_TOKEN}`).
 
-Configuration follows the PulumiCost adapter pattern with three top-level
+Configuration follows the FinFocus adapter pattern with three top-level
 sections:
 
 - `version`: Configuration schema version (currently `0.1`)
@@ -25,7 +25,7 @@ The absolute minimum configuration requires only:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_abc123def456"
   granularity: "day"
@@ -39,7 +39,7 @@ This example shows all available configuration options with descriptions:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}  # API token from Vantage (via env var)
+  token: ${FINFOCUS_VANTAGE_TOKEN}  # API token from Vantage (via env var)
 params:
   # Token selection (must provide one; cost_report_token preferred)
   workspace_token: "ws_..."         # optional if using cost_report_token
@@ -87,14 +87,14 @@ params:
 
 - **Type**: `string`
 - **Required**: Yes
-- **Environment Variable**: `PULUMICOST_VANTAGE_TOKEN`
+- **Environment Variable**: `FINFOCUS_VANTAGE_TOKEN`
 - **Description**: API authentication token issued by Vantage. Can be a service
   account token or user token with appropriate permissions.
 - **Example**:
 
   ```yaml
   credentials:
-    token: ${PULUMICOST_VANTAGE_TOKEN}
+    token: ${FINFOCUS_VANTAGE_TOKEN}
   ```
 
 - **Security**: Never logged or printed in error messages. Always provided via
@@ -108,7 +108,7 @@ params:
 
 - **Type**: `string`
 - **Required**: Either `cost_report_token` or `workspace_token` must be provided
-- **Environment Variable**: `PULUMICOST_VANTAGE_COST_REPORT_TOKEN`
+- **Environment Variable**: `FINFOCUS_VANTAGE_COST_REPORT_TOKEN`
 - **Description**: Cost Report token for querying a curated, pre-filtered cost
   dataset. **Preferred over workspace_token** for stable, consistent results
   and better performance. Cost Report tokens scope access to specific cost
@@ -124,7 +124,7 @@ params:
 
 - **Type**: `string`
 - **Required**: Either `workspace_token` or `cost_report_token` must be provided
-- **Environment Variable**: `PULUMICOST_VANTAGE_WORKSPACE_TOKEN`
+- **Environment Variable**: `FINFOCUS_VANTAGE_WORKSPACE_TOKEN`
 - **Description**: Workspace token for accessing raw cost data at the workspace
   level. Used when Cost Report tokens are not available. Provides broader
   access but may require additional filtering or VQL queries.
@@ -140,7 +140,7 @@ params:
 - **Type**: `string` (ISO 8601 date format: `YYYY-MM-DD`)
 - **Required**: No
 - **Default**: 12 months before today
-- **Environment Variable**: `PULUMICOST_VANTAGE_START_DATE`
+- **Environment Variable**: `FINFOCUS_VANTAGE_START_DATE`
 - **Description**: Inclusive start date for cost data retrieval. Must be in
   `YYYY-MM-DD` format. Used for historical backfills and initial data import.
 - **Example**:
@@ -160,7 +160,7 @@ params:
 - **Type**: `string` (ISO 8601 date format: `YYYY-MM-DD`) or `null`
 - **Required**: No
 - **Default**: Current date
-- **Environment Variable**: `PULUMICOST_VANTAGE_END_DATE`
+- **Environment Variable**: `FINFOCUS_VANTAGE_END_DATE`
 - **Description**: Inclusive end date for cost data retrieval. Omit or set to
   `null` for the current date. Useful for backfills or specific date ranges.
 - **Example**:
@@ -178,7 +178,7 @@ params:
 - **Required**: Yes
 - **Default**: `"day"`
 - **Allowed Values**: `"day"`, `"month"`
-- **Environment Variable**: `PULUMICOST_VANTAGE_GRANULARITY`
+- **Environment Variable**: `FINFOCUS_VANTAGE_GRANULARITY`
 - **Description**: Time-series granularity for cost aggregation. `"day"` provides
   daily buckets; `"month"` aggregates to monthly totals.
 - **Example**:
@@ -310,7 +310,7 @@ params:
 - **Required**: No
 - **Default**: `60`
 - **Allowed Range**: ≥ 1
-- **Environment Variable**: `PULUMICOST_VANTAGE_TIMEOUT`
+- **Environment Variable**: `FINFOCUS_VANTAGE_TIMEOUT`
 - **Description**: HTTP request timeout in seconds. Controls how long to wait
   for API responses before timing out.
 - **Example**:
@@ -331,7 +331,7 @@ params:
 - **Required**: No
 - **Default**: `5000`
 - **Allowed Range**: 1–10,000
-- **Environment Variable**: `PULUMICOST_VANTAGE_PAGE_SIZE`
+- **Environment Variable**: `FINFOCUS_VANTAGE_PAGE_SIZE`
 - **Description**: Number of records to fetch per API request. Larger pages
   reduce total number of API calls; smaller pages reduce memory usage per
   request.
@@ -353,7 +353,7 @@ params:
 - **Required**: No
 - **Default**: `5`
 - **Allowed Range**: ≥ 0
-- **Environment Variable**: `PULUMICOST_VANTAGE_MAX_RETRIES`
+- **Environment Variable**: `FINFOCUS_VANTAGE_MAX_RETRIES`
 - **Description**: Maximum number of retry attempts for transient API failures
   (HTTP 429, 5xx errors). Uses exponential backoff with jitter.
 - **Example**:
@@ -380,14 +380,14 @@ multiple ways:
 
    ```yaml
    credentials:
-     token: ${PULUMICOST_VANTAGE_TOKEN}
+     token: ${FINFOCUS_VANTAGE_TOKEN}
    ```
 
    Set the environment variable before running the adapter:
 
    ```bash
-   export PULUMICOST_VANTAGE_TOKEN="your_token_here"
-   pulumicost-vantage pull --config config.yaml
+   export FINFOCUS_VANTAGE_TOKEN="your_token_here"
+   finfocus-vantage pull --config config.yaml
    ```
 
 2. **Secrets Management System**
@@ -395,7 +395,7 @@ multiple ways:
    For production environments, use a secrets manager:
 
    ```bash
-   export PULUMICOST_VANTAGE_TOKEN=$(aws secretsmanager get-secret-value \
+   export FINFOCUS_VANTAGE_TOKEN=$(aws secretsmanager get-secret-value \
      --secret-id vantage-token --query SecretString --output text)
    ```
 
@@ -455,15 +455,15 @@ shows the complete mapping:
 
 | Parameter | Env Variable | Format | Example |
 |---|---|---|---|
-| credentials.token | `PULUMICOST_VANTAGE_TOKEN` | string | `vantage_3f4g...` |
-| workspace_token | `PULUMICOST_VANTAGE_WS_TOKEN` | string | `ws_a1b2c3...` |
-| cost_report_token | `PULUMICOST_VANTAGE_CR_TOKEN` | string | `cr_a1b2c3...` |
-| start_date | `PULUMICOST_VANTAGE_START_DATE` | YYYY-MM-DD | `2024-01-01` |
-| end_date | `PULUMICOST_VANTAGE_END_DATE` | YYYY-MM-DD | `2024-12-31` |
-| granularity | `PULUMICOST_VANTAGE_GRANULARITY` | day\|month | `day` |
-| request_timeout_seconds | `PULUMICOST_VANTAGE_TIMEOUT` | integer | `60` |
-| page_size | `PULUMICOST_VANTAGE_PAGE_SIZE` | integer | `5000` |
-| max_retries | `PULUMICOST_VANTAGE_MAX_RETRIES` | integer | `5` |
+| credentials.token | `FINFOCUS_VANTAGE_TOKEN` | string | `vantage_3f4g...` |
+| workspace_token | `FINFOCUS_VANTAGE_WS_TOKEN` | string | `ws_a1b2c3...` |
+| cost_report_token | `FINFOCUS_VANTAGE_CR_TOKEN` | string | `cr_a1b2c3...` |
+| start_date | `FINFOCUS_VANTAGE_START_DATE` | YYYY-MM-DD | `2024-01-01` |
+| end_date | `FINFOCUS_VANTAGE_END_DATE` | YYYY-MM-DD | `2024-12-31` |
+| granularity | `FINFOCUS_VANTAGE_GRANULARITY` | day\|month | `day` |
+| request_timeout_seconds | `FINFOCUS_VANTAGE_TIMEOUT` | integer | `60` |
+| page_size | `FINFOCUS_VANTAGE_PAGE_SIZE` | integer | `5000` |
+| max_retries | `FINFOCUS_VANTAGE_MAX_RETRIES` | integer | `5` |
 
 **Note**: Array parameters (`group_bys`, `metrics`, `tag_prefix_filters`) must
 be configured in the YAML file; environment variable overrides are not supported
@@ -481,7 +481,7 @@ Suitable for initial testing and evaluation:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   granularity: "day"
@@ -503,7 +503,7 @@ For importing historical data on first run:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   start_date: "2024-01-01"
@@ -535,7 +535,7 @@ For scheduled daily cost updates (e.g., via cron or Kubernetes CronJob):
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   granularity: "day"
@@ -556,8 +556,8 @@ params:
 
 ```bash
 # Daily at 2 AM UTC
-0 2 * * * /usr/local/bin/pulumicost-vantage pull --config \
-  /etc/pulumicost/config.yaml
+0 2 * * * /usr/local/bin/finfocus-vantage pull --config \
+  /etc/finfocus/config.yaml
 ```
 
 ---
@@ -570,7 +570,7 @@ For detailed cost analysis with all grouping dimensions:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   start_date: "2024-11-01"
@@ -616,7 +616,7 @@ For memory-constrained environments or production stability:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   granularity: "month"           # Less data
@@ -647,7 +647,7 @@ For environments with many tags but only some are relevant:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_your_report_token_here"
   granularity: "day"
@@ -685,7 +685,7 @@ If you have separate cost reports per cloud provider:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_aws_production"
   granularity: "day"
@@ -697,7 +697,7 @@ params:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_gcp_production"
   granularity: "day"
@@ -709,7 +709,7 @@ params:
 #!/bin/bash
 for config in config-aws.yaml config-gcp.yaml; do
   echo "Syncing $config..."
-  pulumicost-vantage pull --config "$config" || exit 1
+  finfocus-vantage pull --config "$config" || exit 1
 done
 echo "All syncs completed"
 ```

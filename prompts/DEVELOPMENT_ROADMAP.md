@@ -1,4 +1,4 @@
-# PulumiCost Vantage Plugin - Development Roadmap Summary
+# FinFocus Vantage Plugin - Development Roadmap Summary
 
 **Status:** ✅ Complete - 31 GitHub issues created
 **Target Release:** v0.1.0 (January 2026)
@@ -9,7 +9,7 @@
 ## Overview
 
 This document summarizes the complete development roadmap for the
-PulumiCost Vantage Plugin v0.1.0. The roadmap has been converted into
+FinFocus Vantage Plugin v0.1.0. The roadmap has been converted into
 31 actionable GitHub issues organized across 8 phases.
 
 All issues are in the GitHub repository and ready for implementation.

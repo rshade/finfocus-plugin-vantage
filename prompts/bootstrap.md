@@ -19,24 +19,24 @@ Follow repo hygiene and keep code deterministic.
 
 ## CONTEXT
 
-We are creating a new repo `pulumicost-plugin-vantage` that implements a
-Vantage adapter for PulumiCost. Reference design Sections 4, 5, 8, 11,
+We are creating a new repo `finfocus-plugin-vantage` that implements a
+Vantage adapter for FinFocus. Reference design Sections 4, 5, 8, 11,
 13, 19.
 
 ## TASKS
 
 1. Module already initialized as
-   `github.com/rshade/pulumicost-plugin-vantage` with replace directives
-   to local pulumicost-core and pulumicost-spec.
+   `github.com/rshade/finfocus-plugin-vantage` with replace directives
+   to local finfocus and finfocus-spec.
 2. Makefile, .golangci.yml, README.md already scaffolded; verify they
    match requirements.
-3. Create Cobra CLI skeleton in `cmd/pulumicost-vantage/main.go` with
+3. Create Cobra CLI skeleton in `cmd/finfocus-vantage/main.go` with
    commands: `pull`, `backfill`, `forecast`.
 4. Create config types in `internal/vantage/adapter/config.go` (mirror
    Section 13, with yaml tags).
 5. Create docs/CONFIG.md populated from Section 4 (example YAML + notes).
 6. Verify all Go code compiles with: `go mod tidy && go build
-   ./cmd/pulumicost-vantage`
+   ./cmd/finfocus-vantage`
 
 ## OUTPUT
 

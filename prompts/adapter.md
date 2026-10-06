@@ -1,7 +1,7 @@
 # SYSTEM
 
 You are implementing the Vantage adapter mapping and sync pipeline for
-PulumiCost in Go.
+FinFocus in Go.
 
 ## GUARDRAILS
 
@@ -21,7 +21,7 @@ Use the design's Sections 6 (Schema Mapping), 7 (Tag Strategy),
 1. Create package `internal/vantage/adapter`:
    - `adapter.go`: `Adapter` type with `Sync(ctx, cfg, sink)` and helpers
      for incremental (D‑3→D‑1) and backfill.
-   - `mapping.go`: Vantage row → PulumiCost `CostRecord` + FOCUS 1.2
+   - `mapping.go`: Vantage row → FinFocus `CostRecord` + FOCUS 1.2
      fields.
    - `normalize.go`: tag normalization, allow/deny filters, label merging.
    - `config.go`: (if not present) `Config` struct with yaml/json tags.
@@ -29,7 +29,7 @@ Use the design's Sections 6 (Schema Mapping), 7 (Tag Strategy),
 2. Expose forecast snapshot path storing records with
    `metric_type="forecast"`.
 3. Persist bookmarks through provided `Sink` interface (assume exists in
-   `pulumicost-core`).
+   `finfocus`).
 4. Include unit tests covering mapping, tag normalization, and
    idempotency.
 

@@ -916,7 +916,7 @@ func TestClient_429WithSuccessfulBackoff(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		callCount++
 		if callCount == 1 {
-			w.Header().Set("X-RateLimit-Reset", "1")
+			w.Header().Set("X-Ratelimit-Reset", "1")
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}

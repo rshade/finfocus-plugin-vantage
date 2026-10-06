@@ -1,6 +1,6 @@
 # Forecast Snapshots
 
-This document explains how the PulumiCost Vantage plugin handles forecast data
+This document explains how the FinFocus Vantage plugin handles forecast data
 and snapshots.
 
 ## Overview
@@ -91,7 +91,7 @@ Include forecast snapshots with daily cost syncs:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_abc123"
   granularity: "day"
@@ -103,7 +103,7 @@ params:
 Run regular pull operation:
 
 ```bash
-pulumicost-vantage pull --config config.yaml
+finfocus-vantage pull --config config.yaml
 # Syncs both historical costs and forecast snapshots
 ```
 
@@ -112,7 +112,7 @@ pulumicost-vantage pull --config config.yaml
 Generate forecast data as standalone operation:
 
 ```bash
-pulumicost-vantage forecast --config config.yaml --out ./data/forecast.json
+finfocus-vantage forecast --config config.yaml --out ./data/forecast.json
 ```
 
 Output file format:
@@ -174,7 +174,7 @@ Configure forecast frequency and retention:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_abc123"
   include_forecast: true
@@ -278,8 +278,8 @@ Forecast data enables:
 Enable verbose logging to inspect forecast API calls:
 
 ```bash
-export PULUMICOST_VANTAGE_VERBOSE=true
-./bin/pulumicost-vantage forecast --config config.yaml
+export FINFOCUS_VANTAGE_VERBOSE=true
+./bin/finfocus-plugin-vantage forecast --config config.yaml
 ```
 
 Look for log entries with `operation=forecast` for troubleshooting.

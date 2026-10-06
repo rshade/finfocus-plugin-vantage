@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide helps you diagnose and resolve common issues with the PulumiCost
+This guide helps you diagnose and resolve common issues with the FinFocus
 Vantage adapter.
 
 ## Common Issues & Solutions
@@ -25,7 +25,7 @@ Vantage adapter.
 1. **Verify token is set**:
 
    ```bash
-   echo $PULUMICOST_VANTAGE_TOKEN
+   echo $FINFOCUS_VANTAGE_TOKEN
    # Should output: vantage_... or cr_... or ws_... (not empty)
    ```
 
@@ -33,7 +33,7 @@ Vantage adapter.
 
    ```bash
    # Test with simple API call
-   curl -H "Authorization: Bearer $PULUMICOST_VANTAGE_TOKEN" \
+   curl -H "Authorization: Bearer $FINFOCUS_VANTAGE_TOKEN" \
      https://api.vantage.sh/costs
    # Should return 200 or 400 (bad params), NOT 401
    ```
@@ -41,7 +41,7 @@ Vantage adapter.
 3. **Regenerate expired tokens**:
    - Log into Vantage console
    - Generate new API token
-   - Update `PULUMICOST_VANTAGE_TOKEN` environment variable
+   - Update `FINFOCUS_VANTAGE_TOKEN` environment variable
 
 4. **Verify token type and scope**:
    - Cost Report tokens (`cr_*`): Scoped to specific reports (preferred)
@@ -52,7 +52,7 @@ Vantage adapter.
 
    ```yaml
    credentials:
-     token: ${PULUMICOST_VANTAGE_TOKEN}  # Use env var, not hardcoded
+     token: ${FINFOCUS_VANTAGE_TOKEN}  # Use env var, not hardcoded
    params:
      cost_report_token: "cr_..."         # Or workspace_token
    ```
@@ -151,7 +151,7 @@ Honors `X-RateLimit-Reset` header when present.
    version: 0.1                              # Required
    source: vantage                           # Required
    credentials:
-     token: ${PULUMICOST_VANTAGE_TOKEN}     # Required
+     token: ${FINFOCUS_VANTAGE_TOKEN}     # Required
    params:
      cost_report_token: "cr_..."            # Required
      granularity: "day"                     # Required
@@ -168,7 +168,7 @@ Honors `X-RateLimit-Reset` header when present.
 4. **Enable debug output**:
 
    ```bash
-   VANTAGE_DEBUG=1 pulumicost-vantage pull --config config.yaml
+   VANTAGE_DEBUG=1 finfocus-vantage pull --config config.yaml
    ```
 
 ---
@@ -209,7 +209,7 @@ Honors `X-RateLimit-Reset` header when present.
    ```bash
    # Instead of full year, import monthly
    for month in {01..12}; do
-     pulumicost-vantage pull \
+     finfocus-vantage pull \
        --config config.yaml \
        --start-date "2024-$month-01" \
        --end-date "2024-$month-31"
@@ -220,7 +220,7 @@ Honors `X-RateLimit-Reset` header when present.
 
    ```bash
    # Ensure only one instance running per report
-   ps aux | grep pulumicost-vantage
+   ps aux | grep finfocus-vantage
    ```
 
 5. **Enable verbose logging**:
@@ -312,7 +312,7 @@ Honors `X-RateLimit-Reset` header when present.
    curl -I https://api.vantage.sh/
 
    # Test with auth
-   curl -H "Authorization: Bearer $PULUMICOST_VANTAGE_TOKEN" \
+   curl -H "Authorization: Bearer $FINFOCUS_VANTAGE_TOKEN" \
      https://api.vantage.sh/costs
    ```
 
@@ -352,9 +352,9 @@ Honors `X-RateLimit-Reset` header when present.
 2. **Ensure single sync instance**:
 
    ```bash
-   ps aux | grep pulumicost-vantage
+   ps aux | grep finfocus-vantage
    # Kill any stale processes
-   pkill -f pulumicost-vantage
+   pkill -f finfocus-vantage
    ```
 
 3. **Verify idempotency**:
@@ -456,7 +456,7 @@ Honors `X-RateLimit-Reset` header when present.
    ```bash
    # Import monthly
    for m in {01..12}; do
-     pulumicost-vantage pull \
+     finfocus-vantage pull \
        --config config.yaml \
        --start-date "2024-$m-01"
    done
@@ -465,7 +465,7 @@ Honors `X-RateLimit-Reset` header when present.
 4. **Monitor resources**:
 
    ```bash
-   watch -n 1 'ps aux | grep pulumicost-vantage'
+   watch -n 1 'ps aux | grep finfocus-vantage'
    ```
 
 ---
@@ -538,17 +538,17 @@ Honors `X-RateLimit-Reset` header when present.
 
    ```bash
    # Watch process in real-time
-   watch -n 1 'ps aux | grep pulumicost-vantage'
+   watch -n 1 'ps aux | grep finfocus-vantage'
    ```
 
 2. **Graceful shutdown**:
 
    ```bash
    # First attempt (clean shutdown)
-   kill -TERM $(pgrep -f pulumicost-vantage)
+   kill -TERM $(pgrep -f finfocus-vantage)
 
    # Force kill if needed
-   kill -KILL $(pgrep -f pulumicost-vantage)
+   kill -KILL $(pgrep -f finfocus-vantage)
    ```
 
 3. **Resume from checkpoint**:
@@ -606,7 +606,7 @@ API calls, retries, and internal operations:
 export VANTAGE_DEBUG=1
 
 # Run adapter
-pulumicost-vantage pull --config config.yaml
+finfocus-vantage pull --config config.yaml
 
 # Output will include:
 # - API request details
@@ -645,8 +645,8 @@ To record real API interactions for testing:
 3. **Run adapter against mock**:
 
    ```bash
-   export PULUMICOST_VANTAGE_TOKEN="test_token"
-   pulumicost-vantage pull --config config.yaml
+   export FINFOCUS_VANTAGE_TOKEN="test_token"
+   finfocus-vantage pull --config config.yaml
    ```
 
 4. **Mock recordings saved**:

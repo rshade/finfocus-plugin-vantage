@@ -22,6 +22,17 @@ const (
 	maxBackoffDelay  = 30 * time.Second
 	baseBackoffDelay = 1 * time.Second
 	jitterOffset     = 0.25
+
+	// Log field constants for structured logging.
+	logFieldAdapter   = "adapter"
+	logFieldOperation = "operation"
+	logFieldAttempt   = "attempt"
+	logFieldRows      = "rows"
+
+	// Log operation names.
+	logAdapterVantage = "vantage"
+	logOpCostsRequest = "costs_request"
+	logOpForecastReq  = "forecast_request"
 )
 
 // httpClient handles low-level HTTP operations with retry and rate limiting.
@@ -55,10 +66,10 @@ func (c *httpClient) doCostsRequest(ctx context.Context, query Query) (Page, err
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
 			c.logger.Info(ctx, "Retrying costs request", map[string]interface{}{
-				"adapter":     "vantage",
-				"operation":   "costs_request",
-				"attempt":     attempt,
-				"max_retries": c.maxRetries,
+				logFieldAdapter:   logAdapterVantage,
+				logFieldOperation: logOpCostsRequest,
+				logFieldAttempt:   attempt,
+				"max_retries":     c.maxRetries,
 			})
 		}
 
@@ -66,9 +77,9 @@ func (c *httpClient) doCostsRequest(ctx context.Context, query Query) (Page, err
 		if err == nil {
 			if attempt > 0 {
 				c.logger.Info(ctx, "Costs request succeeded after retry", map[string]interface{}{
-					"adapter":   "vantage",
-					"operation": "costs_request",
-					"attempt":   attempt,
+					logFieldAdapter:   logAdapterVantage,
+					logFieldOperation: logOpCostsRequest,
+					logFieldAttempt:   attempt,
 				})
 			}
 			return page, nil
@@ -132,14 +143,14 @@ func (c *httpClient) doCostsRequestOnce(ctx context.Context, query Query) (Page,
 
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "pulumicost-vantage/1.0")
+	req.Header.Set("User-Agent", "finfocus-vantage/1.0")
 
 	c.logger.Debug(ctx, "Making costs request", map[string]interface{}{
-		"adapter":   "vantage",
-		"operation": "costs_request",
-		"attempt":   0,
-		"url":       c.redactURL(u.String()),
-		"method":    "GET",
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpCostsRequest,
+		logFieldAttempt:   0,
+		"url":             c.redactURL(u.String()),
+		"method":          "GET",
 	})
 
 	resp, err := c.httpClient.Do(req)
@@ -155,10 +166,10 @@ func (c *httpClient) doCostsRequestOnce(ctx context.Context, query Query) (Page,
 		resetTime := c.parseRateLimitReset(ctx, resp)
 		if resetTime > 0 {
 			c.logger.Warn(ctx, "Rate limited, waiting for reset", map[string]interface{}{
-				"adapter":   "vantage",
-				"operation": "costs_request",
-				"attempt":   0,
-				"reset_in":  time.Duration(resetTime) * time.Second,
+				logFieldAdapter:   logAdapterVantage,
+				logFieldOperation: logOpCostsRequest,
+				logFieldAttempt:   0,
+				"reset_in":        time.Duration(resetTime) * time.Second,
 			})
 			return Page{}, &rateLimitError{resetIn: time.Duration(resetTime) * time.Second}
 		}
@@ -167,11 +178,11 @@ func (c *httpClient) doCostsRequestOnce(ctx context.Context, query Query) (Page,
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		c.logger.Error(ctx, "Costs request failed", map[string]interface{}{
-			"adapter":     "vantage",
-			"operation":   "costs_request",
-			"attempt":     0,
-			"status_code": resp.StatusCode,
-			"response":    string(body),
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: logOpCostsRequest,
+			logFieldAttempt:   0,
+			"status_code":     resp.StatusCode,
+			"response":        string(body),
 		})
 		return Page{}, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -184,12 +195,12 @@ func (c *httpClient) doCostsRequestOnce(ctx context.Context, query Query) (Page,
 	page := Page(costsResp)
 
 	c.logger.Debug(ctx, "Costs response received", map[string]interface{}{
-		"adapter":     "vantage",
-		"operation":   "costs_request",
-		"attempt":     0,
-		"rows":        len(page.Data),
-		"next_cursor": page.NextCursor,
-		"has_more":    page.HasMore,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpCostsRequest,
+		logFieldAttempt:   0,
+		logFieldRows:      len(page.Data),
+		"next_cursor":     page.NextCursor,
+		"has_more":        page.HasMore,
 	})
 
 	return page, nil
@@ -202,10 +213,10 @@ func (c *httpClient) doForecastRequest(ctx context.Context, reportToken string, 
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
 			c.logger.Info(ctx, "Retrying forecast request", map[string]interface{}{
-				"adapter":     "vantage",
-				"operation":   "forecast_request",
-				"attempt":     attempt,
-				"max_retries": c.maxRetries,
+				logFieldAdapter:   logAdapterVantage,
+				logFieldOperation: logOpForecastReq,
+				logFieldAttempt:   attempt,
+				"max_retries":     c.maxRetries,
 			})
 		}
 
@@ -213,9 +224,9 @@ func (c *httpClient) doForecastRequest(ctx context.Context, reportToken string, 
 		if err == nil {
 			if attempt > 0 {
 				c.logger.Info(ctx, "Forecast request succeeded after retry", map[string]interface{}{
-					"adapter":   "vantage",
-					"operation": "forecast_request",
-					"attempt":   attempt,
+					logFieldAdapter:   logAdapterVantage,
+					logFieldOperation: logOpForecastReq,
+					logFieldAttempt:   attempt,
 				})
 			}
 			return forecast, nil
@@ -263,14 +274,14 @@ func (c *httpClient) doForecastRequestOnce(
 
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "pulumicost-vantage/1.0")
+	req.Header.Set("User-Agent", "finfocus-vantage/1.0")
 
 	c.logger.Debug(ctx, "Making forecast request", map[string]interface{}{
-		"adapter":   "vantage",
-		"operation": "forecast_request",
-		"attempt":   0,
-		"url":       c.redactURL(u.String()),
-		"method":    "GET",
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpForecastReq,
+		logFieldAttempt:   0,
+		"url":             c.redactURL(u.String()),
+		"method":          "GET",
 	})
 
 	resp, err := c.httpClient.Do(req)
@@ -286,10 +297,10 @@ func (c *httpClient) doForecastRequestOnce(
 		resetTime := c.parseRateLimitReset(ctx, resp)
 		if resetTime > 0 {
 			c.logger.Warn(ctx, "Rate limited, waiting for reset", map[string]interface{}{
-				"adapter":   "vantage",
-				"operation": "forecast_request",
-				"attempt":   0,
-				"reset_in":  time.Duration(resetTime) * time.Second,
+				logFieldAdapter:   logAdapterVantage,
+				logFieldOperation: logOpForecastReq,
+				logFieldAttempt:   0,
+				"reset_in":        time.Duration(resetTime) * time.Second,
 			})
 			return Forecast{}, &rateLimitError{resetIn: time.Duration(resetTime) * time.Second}
 		}
@@ -298,11 +309,11 @@ func (c *httpClient) doForecastRequestOnce(
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		c.logger.Error(ctx, "Forecast request failed", map[string]interface{}{
-			"adapter":     "vantage",
-			"operation":   "forecast_request",
-			"attempt":     0,
-			"status_code": resp.StatusCode,
-			"response":    string(body),
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: logOpForecastReq,
+			logFieldAttempt:   0,
+			"status_code":     resp.StatusCode,
+			"response":        string(body),
 		})
 		return Forecast{}, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -315,10 +326,10 @@ func (c *httpClient) doForecastRequestOnce(
 	forecast := Forecast(forecastResp)
 
 	c.logger.Debug(ctx, "Forecast response received", map[string]interface{}{
-		"adapter":   "vantage",
-		"operation": "forecast_request",
-		"attempt":   0,
-		"rows":      len(forecast.Data),
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpForecastReq,
+		logFieldAttempt:   0,
+		logFieldRows:      len(forecast.Data),
 	})
 
 	return forecast, nil
@@ -354,10 +365,10 @@ func (c *httpClient) waitBeforeRetry(ctx context.Context, attempt int, lastErr e
 	if errors.As(lastErr, &rateLimitErr) && rateLimitErr.resetIn > 0 {
 		delay = rateLimitErr.resetIn
 		c.logger.Debug(ctx, "Waiting for rate limit reset", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "rate_limit_wait",
-			"attempt":   attempt,
-			"delay":     delay,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "rate_limit_wait",
+			logFieldAttempt:   attempt,
+			"delay":           delay,
 		})
 	} else {
 		// Exponential backoff: baseDelay * exponentialBase^attempt.
@@ -374,10 +385,10 @@ func (c *httpClient) waitBeforeRetry(ctx context.Context, attempt int, lastErr e
 		}
 
 		c.logger.Debug(ctx, "Waiting before retry", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "retry_backoff",
-			"attempt":   attempt,
-			"delay":     delay,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "retry_backoff",
+			logFieldAttempt:   attempt,
+			"delay":           delay,
 		})
 	}
 
@@ -391,7 +402,7 @@ func (c *httpClient) waitBeforeRetry(ctx context.Context, attempt int, lastErr e
 
 // parseRateLimitReset extracts reset time from rate limit headers.
 func (c *httpClient) parseRateLimitReset(ctx context.Context, resp *http.Response) int64 {
-	resetStr := resp.Header.Get("X-RateLimit-Reset")
+	resetStr := resp.Header.Get("X-Ratelimit-Reset")
 	if resetStr == "" {
 		resetStr = resp.Header.Get("Retry-After")
 	}
@@ -402,11 +413,11 @@ func (c *httpClient) parseRateLimitReset(ctx context.Context, resp *http.Respons
 	reset, err := strconv.ParseInt(resetStr, 10, 64)
 	if err != nil {
 		c.logger.Warn(ctx, "Failed to parse rate limit reset header", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "parse_rate_limit",
-			"attempt":   0,
-			"value":     resetStr,
-			"error":     err,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "parse_rate_limit",
+			logFieldAttempt:   0,
+			"value":           resetStr,
+			"error":           err,
 		})
 		return 0
 	}

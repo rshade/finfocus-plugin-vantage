@@ -1,4 +1,4 @@
-# AGENTS.md - PulumiCost Vantage Plugin
+# AGENTS.md - FinFocus Vantage Plugin
 
 ## Build/Lint/Test Commands
 
@@ -25,10 +25,39 @@
 
 ## Project Structure
 
-- `cmd/pulumicost-vantage/` - CLI with Cobra
+- `cmd/finfocus-plugin-vantage/` - CLI with Cobra
 - `internal/vantage/client/` - REST client with retry/backoff
 - `internal/vantage/adapter/` - FOCUS 1.2 mapping/sync logic
 - `test/wiremock/` - Mock server configs
+
+## Vantage API Client
+
+The plugin wraps the official Vantage Go client (`github.com/vantage-sh/vantage-go` v0.1.13, MIT) behind `internal/vantageapi` interface. Legacy hand-written client (`internal/vantage/client`) remains for now; migration tracked by task VT-0.2.
+
+**Client setup:**
+- Base URL defaults to `https://api.vantage.sh/v2` (the official API server)
+- Bearer token passed via `Authorization: Bearer <token>` header
+- Read-scope Service token recommended (no Write permissions needed)
+- All endpoints wrapped by `internal/vantageapi` interface (not direct generated client usage)
+
+**Key endpoints:**
+- `GET /costs`: Query costs with date range, groupings, and settings
+- `GET /cost_reports/{token}/forecasted_costs`: Forecast snapshots per provider/service
+- Response amounts are decimal strings (never float for money)
+
+**Using the wrapper:**
+
+```go
+client, err := vantageapi.NewClient("https://api.vantage.sh/v2", "your-token")
+resp, err := client.GetCosts(ctx, &GetCostsParams{
+    CostReportToken: &token,
+    StartDate: &"2026-10-01",
+    EndDate: &"2026-10-31",
+    DateBin: &"day",
+    Groupings: []string{"provider", "service", "region"},
+    Limit: &5000,
+})
+```
 
 ## Testing Requirements
 

@@ -1,4 +1,4 @@
-// Package adapter provides the Vantage adapter for PulumiCost.
+// Package adapter provides the Vantage adapter for FinFocus.
 package adapter
 
 import (
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rshade/pulumicost-plugin-vantage/internal/vantage/client"
+	"github.com/rshade/finfocus-plugin-vantage/internal/vantage/client"
 )
 
-// CostRecord represents a cost record in PulumiCost's internal schema with FOCUS 1.2 fields.
+// CostRecord represents a cost record in FinFocus's internal schema with FOCUS 1.2 fields.
 type CostRecord struct {
 	// Core dimensions.
 	Timestamp      time.Time         `json:"timestamp"`
@@ -49,8 +49,38 @@ type CostRecord struct {
 	Diagnostics *Diagnostics `json:"diagnostics,omitempty"`
 }
 
+// Log field constants for structured logging.
+const (
+	logFieldAdapter      = "adapter"
+	logFieldOperation    = "operation"
+	logFieldAttempt      = "attempt"
+	logFieldError        = "error"
+	logFieldRows         = "rows"
+	logFieldProvider     = "provider"
+	logFieldService      = "service"
+	logFieldTotalRecords = "total_records"
+	logFieldSyncSummary  = "sync_summary"
+	logFieldCostsRequest = "costs_request"
+	logFieldForecastReq  = "forecast_request"
+
+	// Log values.
+	logAdapterVantage = "vantage"
+	logOpSync         = "sync"
+	logOpSyncIncr     = "incremental_sync"
+	logOpFieldValid   = "field_validation"
+	logOpCostsRequest = "costs_request"
+	logOpForecastReq  = "forecast_request"
+	logOpSyncSummary  = "sync_summary"
+)
+
+// Config dimension fields.
+const (
+	dimProvider = "provider"
+	dimService  = "service"
+)
+
 // Sink defines the interface for persisting cost records.
-// This interface is assumed to exist in pulumicost-core.
+// This interface is assumed to exist in finfocus.
 type Sink interface {
 	// WriteRecords writes cost records to the data store.
 	WriteRecords(ctx context.Context, records []CostRecord) error
@@ -62,7 +92,7 @@ type Sink interface {
 	SetBookmark(ctx context.Context, key string, value string) error
 }
 
-// Adapter implements the Vantage adapter for PulumiCost.
+// Adapter implements the Vantage adapter for FinFocus.
 type Adapter struct {
 	client             client.Client
 	logger             client.Logger
@@ -94,9 +124,9 @@ func (a *Adapter) Sync(ctx context.Context, cfg Config, sink Sink) error {
 	a.ResetDiagnosticsSummary()
 
 	a.logger.Info(ctx, "Starting Vantage adapter sync", map[string]interface{}{
-		"adapter":   "vantage",
-		"operation": "sync",
-		"attempt":   0,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpSync,
+		logFieldAttempt:   0,
 	})
 
 	// Determine sync mode based on configuration.
@@ -122,11 +152,11 @@ func (a *Adapter) syncIncremental(ctx context.Context, cfg Config, sink Sink) er
 	endDate := now.AddDate(0, 0, -1)   // D-1
 
 	a.logger.Info(ctx, "Performing incremental sync", map[string]interface{}{
-		"adapter":    "vantage",
-		"operation":  "incremental_sync",
-		"attempt":    0,
-		"start_date": startDate.Format("2006-01-02"),
-		"end_date":   endDate.Format("2006-01-02"),
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: logOpSyncIncr,
+		logFieldAttempt:   0,
+		"start_date":      startDate.Format("2006-01-02"),
+		"end_date":        endDate.Format("2006-01-02"),
 	})
 
 	return a.syncDateRange(ctx, cfg, sink, startDate, endDate, false)
@@ -138,11 +168,11 @@ func (a *Adapter) syncBackfill(ctx context.Context, cfg Config, sink Sink) error
 	endDate := *cfg.EndDate
 
 	a.logger.Info(ctx, "Performing backfill sync", map[string]interface{}{
-		"adapter":    "vantage",
-		"operation":  "backfill_sync",
-		"attempt":    0,
-		"start_date": startDate.Format("2006-01-02"),
-		"end_date":   endDate.Format("2006-01-02"),
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: "backfill_sync",
+		logFieldAttempt:   0,
+		"start_date":      startDate.Format("2006-01-02"),
+		"end_date":        endDate.Format("2006-01-02"),
 	})
 
 	return a.syncDateRange(ctx, cfg, sink, startDate, endDate, true)
@@ -223,12 +253,12 @@ func (a *Adapter) syncSingleRange(
 	}
 
 	a.logger.Info(ctx, "Fetched cost data", map[string]interface{}{
-		"adapter":    "vantage",
-		"operation":  "fetch_cost_data",
-		"attempt":    0,
-		"pages":      pageCount,
-		"records":    len(allRecords),
-		"query_hash": queryHash,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: "fetch_cost_data",
+		logFieldAttempt:   0,
+		"pages":           pageCount,
+		"records":         len(allRecords),
+		"query_hash":      queryHash,
 	})
 
 	// Write records.
@@ -262,10 +292,10 @@ func (a *Adapter) applyBookmark(
 		if parsed, parseErr := time.Parse(time.RFC3339, lastEndDate); parseErr == nil {
 			query.StartAt = parsed
 			a.logger.Info(ctx, "Resuming from bookmark", map[string]interface{}{
-				"adapter":   "vantage",
-				"operation": "resume_bookmark",
-				"attempt":   0,
-				"bookmark":  lastEndDate,
+				logFieldAdapter:   logAdapterVantage,
+				logFieldOperation: "resume_bookmark",
+				logFieldAttempt:   0,
+				"bookmark":        lastEndDate,
 			})
 		}
 	}
@@ -319,10 +349,10 @@ func (a *Adapter) updateBookmark(
 	bookmarkValue := endDate.Format(time.RFC3339)
 	if err := sink.SetBookmark(ctx, bookmarkKey, bookmarkValue); err != nil {
 		a.logger.Warn(ctx, "Failed to update bookmark", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "update_bookmark",
-			"attempt":   0,
-			"error":     err,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "update_bookmark",
+			logFieldAttempt:   0,
+			logFieldError:     err,
 		})
 	}
 }
@@ -341,10 +371,10 @@ func (a *Adapter) handleForecast(
 
 	if err := a.syncForecast(ctx, cfg, sink, startDate, endDate, queryHash); err != nil {
 		a.logger.Warn(ctx, "Forecast sync failed", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "forecast_sync",
-			"attempt":   0,
-			"error":     err,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "forecast_sync",
+			logFieldAttempt:   0,
+			logFieldError:     err,
 		})
 	}
 }
@@ -386,11 +416,11 @@ func (a *Adapter) syncForecast(
 	}
 
 	a.logger.Info(ctx, "Fetched forecast data", map[string]interface{}{
-		"adapter":    "vantage",
-		"operation":  "fetch_forecast_data",
-		"attempt":    0,
-		"records":    len(forecastRecords),
-		"query_hash": queryHash,
+		logFieldAdapter:   logAdapterVantage,
+		logFieldOperation: "fetch_forecast_data",
+		logFieldAttempt:   0,
+		"records":         len(forecastRecords),
+		"query_hash":      queryHash,
 	})
 
 	return sink.WriteRecords(ctx, forecastRecords)
@@ -441,10 +471,10 @@ func (a *Adapter) logDiagnosticsSummary(ctx context.Context, err error) {
 // logSyncFailure logs the error summary when sync fails.
 func (a *Adapter) logSyncFailure(ctx context.Context, summary *DiagnosticsSummary, err error) {
 	a.logger.Error(ctx, "Sync failed", map[string]interface{}{
-		"adapter":            "vantage",
-		"operation":          "sync_summary",
-		"error":              err.Error(),
-		"total_records":      summary.TotalRecords,
+		logFieldAdapter:      logAdapterVantage,
+		logFieldOperation:    logOpSyncSummary,
+		logFieldError:        err.Error(),
+		logFieldTotalRecords: summary.TotalRecords,
 		"records_with_issue": summary.RecordsWithIssues,
 	})
 
@@ -460,9 +490,9 @@ func (a *Adapter) logSyncFailure(ctx context.Context, summary *DiagnosticsSummar
 func (a *Adapter) logSyncSuccess(ctx context.Context, summary *DiagnosticsSummary) {
 	if summary.HasIssues() {
 		a.logger.Warn(ctx, "Sync completed with data quality issues", map[string]interface{}{
-			"adapter":            "vantage",
-			"operation":          "sync_summary",
-			"total_records":      summary.TotalRecords,
+			logFieldAdapter:      logAdapterVantage,
+			logFieldOperation:    logOpSyncSummary,
+			logFieldTotalRecords: summary.TotalRecords,
 			"records_with_issue": summary.RecordsWithIssues,
 			"missing_fields":     len(summary.MissingFields),
 			"warnings":           len(summary.Warnings),
@@ -472,9 +502,9 @@ func (a *Adapter) logSyncSuccess(ctx context.Context, summary *DiagnosticsSummar
 	}
 
 	a.logger.Info(ctx, "Sync completed successfully with no data quality issues", map[string]interface{}{
-		"adapter":       "vantage",
-		"operation":     "sync_summary",
-		"total_records": summary.TotalRecords,
+		logFieldAdapter:      logAdapterVantage,
+		logFieldOperation:    logOpSyncSummary,
+		logFieldTotalRecords: summary.TotalRecords,
 	})
 }
 
@@ -483,18 +513,18 @@ func (a *Adapter) logDiagnosticDetails(ctx context.Context, summary *Diagnostics
 	// Log detailed missing fields breakdown.
 	if len(summary.MissingFields) > 0 {
 		a.logger.Warn(ctx, "Missing fields summary", map[string]interface{}{
-			"adapter":        "vantage",
-			"operation":      "diagnostic_summary",
-			"missing_fields": summary.MissingFields,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "diagnostic_summary",
+			"missing_fields":  summary.MissingFields,
 		})
 	}
 
 	// Log detailed warnings breakdown.
 	if len(summary.Warnings) > 0 {
 		a.logger.Warn(ctx, "Warnings summary", map[string]interface{}{
-			"adapter":   "vantage",
-			"operation": "diagnostic_summary",
-			"warnings":  summary.Warnings,
+			logFieldAdapter:   logAdapterVantage,
+			logFieldOperation: "diagnostic_summary",
+			"warnings":        summary.Warnings,
 		})
 	}
 }

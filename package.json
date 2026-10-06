@@ -1,7 +1,7 @@
 {
-  "name": "pulumicost-plugin-vantage",
-  "version": "1.0.0",
-  "description": "PulumiCost Vantage Plugin",
+  "name": "finfocus-plugin-vantage",
+  "version": "0.1.0",
+  "description": "FinFocus Vantage Plugin",
   "scripts": {
     "commitlint": "commitlint --edit $1",
     "markdownlint": "npx markdownlint-cli '**/*.md' --ignore node_modules"

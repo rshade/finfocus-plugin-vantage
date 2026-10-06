@@ -1,4 +1,4 @@
-# PulumiCost Vantage Plugin - Example Configuration
+# FinFocus Vantage Plugin - Example Configuration
 # This file demonstrates both cost_report_token and workspace_token flows.
 
 version: 0.1
@@ -7,7 +7,7 @@ source: vantage
 # Credentials: Token can be provided via environment variable (recommended)
 # or inline (use environment variable for real deployments)
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 
 params:
   # ====================
@@ -93,7 +93,7 @@ params:
 # ====================
 # Backfill Strategy (for CLI: --months 12)
 # ====================
-# When using `pulumicost-vantage backfill --months 12`:
+# When using `finfocus-plugin-vantage backfill --months 12`:
 # - Requests are chunked by month to prevent timeouts
 # - Each month is fetched sequentially
 # - Bookmarks track progress and allow resumption

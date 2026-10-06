@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rshade/pulumicost-plugin-vantage/internal/vantage/client"
+	"github.com/rshade/finfocus-plugin-vantage/internal/vantage/client"
 )
 
 // GenerateLineItemID creates a deterministic idempotency key for a cost record.

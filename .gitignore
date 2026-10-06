@@ -51,8 +51,8 @@ test/wiremock/__files/
 # Temp files
 *.tmp
 *.bak
-/pulumicost-vantage
-/bin/pulumicost-vantage
+/finfocus-plugin-vantage
+/bin/finfocus-plugin-vantage
 COMMIT_MESSAGE.md
 PR_MESSAGE.md
 Github_Development_Prompt.md
@@ -60,3 +60,7 @@ Github_Development_Prompt_Grok.md
 node_modules/
 CodeRabbitPrompt.md
 TODO.md
+
+# Vale: ignore downloaded style packages, keep config/vocabularies
+.vale/styles/*
+!.vale/styles/config/

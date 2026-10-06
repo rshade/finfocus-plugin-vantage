@@ -5,8 +5,8 @@ with code in this repository.
 
 ## Project Overview
 
-**pulumicost-plugin-vantage** is a Go-based adapter that fetches normalized
-cost/usage data from Vantage's REST API and maps it into PulumiCost's
+**finfocus-plugin-vantage** is a Go-based adapter that fetches normalized
+cost/usage data from Vantage's REST API and maps it into FinFocus's
 internal schema with FinOps FOCUS 1.2 fields. The adapter supports
 historical backfills, daily incremental syncs, tag/label dimensions,
 and forecast snapshots.
@@ -46,10 +46,10 @@ images on PR changes.
 ## Module Dependencies
 
 **Plugin is Self-Contained**: This plugin has NO external dependencies on
-`pulumicost-core` or `pulumicost-spec`. It builds and tests independently.
+`finfocus` or `finfocus-spec`. It builds and tests independently.
 
 **Note on go.work**: The `go.work` file at
-`/mnt/c/GitHub/go/src/github.com/rshade/go.work` has been disabled
+`$GOPATH/src/github.com/rshade/go.work` has been disabled
 (moved to `go.work.disabled`) since the plugin doesn't require it.
 Remote CI builds work fine without workspace files - this is by design.
 
@@ -83,7 +83,7 @@ Remote CI builds work fine without workspace files - this is by design.
 **Version Embedding**: The plugin embeds version at build time:
 
 ```go
-// cmd/pulumicost-vantage/main.go
+// cmd/finfocus-plugin-vantage/main.go
 var version = "dev"
 ```
 
@@ -93,8 +93,8 @@ Makefile sets this via LDFLAGS:
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 ```
 
-**Important**: Unlike pulumicost-core, the plugin does NOT reference
-`github.com/rshade/pulumicost-core/pkg/version` - it's fully independent.
+**Important**: Unlike finfocus, the plugin does NOT reference
+`github.com/rshade/finfocus/pkg/version` - it's fully independent.
 
 **Cross-Platform Builds**: Always use `CGO_ENABLED=0` for static builds:
 
@@ -107,7 +107,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" ...
 ### Directory Structure
 
 ```text
-cmd/pulumicost-vantage/        # CLI entry point with Cobra commands
+cmd/finfocus-plugin-vantage/        # CLI entry point with Cobra commands
 # (pull, backfill, forecast)
 internal/vantage/
   ├── client/                   # REST client with retry/backoff logic
@@ -136,16 +136,25 @@ type Adapter interface {
     Sync(ctx context.Context, cfg Config, sink Sink) error
 }
 
-// Sink (from pulumicost-core, persists cost records)
+// Sink (from finfocus, persists cost records)
 type Sink interface {
     Write(ctx context.Context, records []CostRecord) error
     UpdateBookmark(ctx context.Context, key string, value interface{}) error
 }
 ```
 
+## Vantage API Client
+
+Official client (`github.com/vantage-sh/vantage-go` v0.1.13, MIT) wrapped by `internal/vantageapi` interface. Legacy hand-written client (`internal/vantage/client`) to be retired per VT-0.2.
+
+**Setup:** `NewClient(baseURL, token)` validates http:// URLs are loopback-only (security guard for tokens).
+**Base URL:** Defaults to `https://api.vantage.sh/v2` (v2 API, not v1).
+**Auth:** Bearer token via `Authorization` header (never logged or printed).
+**Amounts:** Always decimal strings; never use `float64` for money.
+
 ## Key Features & Implementation Notes
 
-### Schema Mapping (Vantage → PulumiCost → FOCUS 1.2)
+### Schema Mapping (Vantage → FinFocus → FOCUS 1.2)
 
 Critical fields:
 
@@ -197,7 +206,7 @@ full YAML config reference.
 
 ```yaml
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}  # Via env var, never logged
+  token: ${FINFOCUS_VANTAGE_TOKEN}  # Via env var, never logged
 params:
   cost_report_token: "cr_..."         # Preferred over workspace_token
 ```
@@ -270,8 +279,8 @@ params:
 1. **Float Comparisons in Tests**: Use `assert.InEpsilon(t, expected, actual, 0.01)`
    instead of `assert.Equal()` for floating-point assertions
 
-2. **Error Assertions**: Use `require.Error(t, err)` for mandatory error checks in
-   test setup, `assert.Error()` for optional checks
+2. **Error Assertions**: Use `require.Error(t, err)` for setup error checks,
+   `assert.Error()` for optional checks
 
 3. **Magic Numbers**: Extract to named constants at package level:
 
@@ -341,7 +350,7 @@ go test -run TestCostsMapping -v
 
 ```bash
 make wiremock-up
-# Then run: ./pulumicost-vantage pull --config test/config.yaml
+# Then run: ./finfocus-vantage pull --config test/config.yaml
 make wiremock-down
 ```
 
@@ -352,7 +361,7 @@ adapter/diagnostics.go)
 
 ## Security & Secrets
 
-- **Token handling**: Read from `PULUMICOST_VANTAGE_TOKEN` env var or `.env`
+- **Token handling**: Read from `FINFOCUS_VANTAGE_TOKEN` env var or `.env`
   (dev only); never log
 - **Redaction**: All `Authorization` headers and token values must be
   redacted from logs
@@ -386,14 +395,14 @@ into any unapproved command attempts.
 - **Design Document**: `pulumi_cost_vantage_adapter_design_draft_v_0.md`
 - **AGENTS.md**: Existing guidelines (build targets, code style, interfaces,
   testing)
-- **pulumicost-core**: Located at `../pulumicost-core` (local dependency)
+- **finfocus**: Located at `../finfocus` (local dependency)
   - FOCUS 1.2 Schema: `internal/focus/`
   - Sink Interface: `pkg/ingest/`
-- **pulumicost-spec**: Located at `../pulumicost-spec` (local dependency)
+- **finfocus-spec**: Located at `../finfocus-spec` (local dependency)
 
 ## Known Constraints & Assumptions
 
-- Assumes `pulumicost-core` is available (FOCUS types, Sink interface)
+- Assumes `finfocus` is available (FOCUS types, Sink interface)
 - Vantage API provides fields: `provider`, `service`, `account`, `project`,
   `region`, `resource_id`, `tags`, `cost`, `usage`, `amortized_cost`
   (when available), `currency`
@@ -516,7 +525,7 @@ Uses `markdownlint-cli` for consistent markdown formatting.
 - `docs/` - User documentation (config, troubleshooting, deployment)
 - `.github/` - GitHub workflows, templates, actions config
 - `internal/vantage/` - Adapter code (client, adapter, contracts)
-- `cmd/pulumicost-vantage/` - CLI entry point
+- `cmd/finfocus-plugin-vantage/` - CLI entry point
 - `test/wiremock/` - Mock server fixtures
 
 ### Success Criteria for v0.1.0
@@ -665,7 +674,7 @@ Documentation files link to each other:
 
 ## Troubleshooting
 
-**Auth errors**: Verify `PULUMICOST_VANTAGE_TOKEN` is set and valid
+**Auth errors**: Verify `FINFOCUS_VANTAGE_TOKEN` is set and valid
 **Rate limits (429)**: Adapter automatically backs off; check
 `X-RateLimit-Reset` header
 **Pagination issues**: Enable verbose logging and inspect cursor values

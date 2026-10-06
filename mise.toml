@@ -1,0 +1,42 @@
+# Development tools pinned versions
+# Run from repo: mise exec <tool> -- <command>
+
+[tools]
+go = "1.27.1"
+node = "24"
+goreleaser = "2.18.2"
+vale = "3.20.0"
+actionlint = "1.7.12"
+golangci-lint = "2.14.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
+"aqua:reviewdog/reviewdog" = "0.21.0"
+"npm:@commitlint/cli" = "20.5.2"
+"npm:@commitlint/config-conventional" = "20.5.3"
+"npm:markdownlint-cli2" = "0.23.3"
+
+[env]
+# Tools can be installed as needed
+
+[tasks."lint:golang"]
+run = "golangci-lint run"
+
+[tasks."lint:markdown"]
+run = "markdownlint '**/*.md' --ignore node_modules"
+
+[tasks."lint:workflows"]
+run = "actionlint"
+
+[tasks."lint:prose"]
+run = "vale ."
+
+[tasks.build]
+run = "go build ./cmd/finfocus-plugin-vantage"
+
+[tasks.test]
+run = "go test ./..."
+
+[tasks."lint-prose-sync"]
+run = "vale sync"
+
+[tasks."lint-prose-ci"]
+run = "vale ."

@@ -1,11 +1,20 @@
 # Changelog
 
-All notable changes to the PulumiCost Vantage plugin are documented in this file.
+All notable changes to the FinFocus Vantage plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- Replaced the CLI entry point with the FinFocus pluginsdk gRPC server.
+- Added Vantage-backed `GetActualCost`, provider support discovery, per-request
+  credentials, FOCUS record construction when source data is sufficient, and
+  pagination and rate limit retry handling.
+- Added request mapping, usage, Vantage API, and FOCUS 1.4 field documentation.
+- Added unit and mocked Vantage API integration coverage for the RPC adapter.
 
 ---
 
@@ -194,11 +203,11 @@ There are no previous versions. Installation instructions for v0.1.0:
 
 ```bash
 # Clone repository
-git clone https://github.com/PulumiCost/pulumicost-plugin-vantage.git
-cd pulumicost-plugin-vantage
+git clone https://github.com/FinFocus/finfocus-plugin-vantage.git
+cd finfocus-plugin-vantage
 
 # Build from source
-go install ./cmd/pulumicost-vantage
+go install ./cmd/finfocus-vantage
 
 # Or download binary from releases
 ```
@@ -209,7 +218,7 @@ Configuration for v0.1.0:
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   cost_report_token: "cr_..."
   granularity: "day"
@@ -222,7 +231,7 @@ params:
 #### Initial Release (v0.1.0)
 
 - Richard Shade (@rshade) - Design and implementation
-- PulumiCost Team - Architecture guidance and FOCUS 1.2 reference
+- FinFocus Team - Architecture guidance and FOCUS 1.2 reference
 - Vantage API - Cost data provider
 
 ### Acknowledgments
@@ -267,6 +276,6 @@ None documented for v0.1.0. Please report issues via GitHub issues.
 ### Links
 
 - **Documentation**: [docs/](docs/)
-- **GitHub Issues**: [Issues](https://github.com/PulumiCost/pulumicost-plugin-vantage/issues)
+- **GitHub Issues**: [Issues](https://github.com/FinFocus/finfocus-plugin-vantage/issues)
 - **Design Document**: [pulumi_cost_vantage_adapter_design_draft_v_0.md](pulumi_cost_vantage_adapter_design_draft_v_0.md)
 - **FOCUS 1.2 Spec**: [finops-foundation.org/focus](https://finops-foundation.org/focus/)

@@ -1,0 +1,44 @@
+name: Prose
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  vale:
+    name: Vale (Google style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads this repo's mise.toml only, so CI resolves the exact vale and
+      # reviewdog versions pinned there.
+      - uses: jdx/mise-action@v2
+        with:
+          install_only: true
+          install_args: vale aqua:reviewdog/reviewdog
+
+      # Style packages are gitignored dependencies; fetch them per run.
+      - name: Fetch Vale styles
+        run: mise run lint-prose-sync
+
+      # -filter-mode=added reports only lines this PR touched. Without it the
+      # existing backlog of findings would land on every unrelated PR.
+      #
+      # -fail-level=none annotates without blocking. Raise to `error` once the
+      # backlog is worked down and the signal is trusted.
+      - name: Vale -> reviewdog
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mise run lint-prose-ci | reviewdog \
+            -efm="%f:%l:%c:%m" \
+            -name="vale" \
+            -reporter=github-pr-review \
+            -filter-mode=added \
+            -level=warning \
+            -fail-level=none

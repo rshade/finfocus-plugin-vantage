@@ -3,7 +3,7 @@
 ## Our Pledge
 
 We are committed to providing a welcoming and inspiring community for all.
-We pledge that everyone involved in the PulumiCost Vantage Plugin project
+We pledge that everyone involved in the FinFocus Vantage Plugin project
 — whether as a contributor, maintainer, or user — will be treated with
 respect and dignity.
 

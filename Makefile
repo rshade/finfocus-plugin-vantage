@@ -1,9 +1,9 @@
-.PHONY: build test test-coverage lint fmt vet tidy verify clean wiremock-up wiremock-down demo help
+.PHONY: build test test-coverage lint fmt vet tidy verify clean wiremock-up wiremock-down demo help govulncheck
 
 # Variables
-BINARY_NAME=pulumicost-vantage
+BINARY_NAME=finfocus-plugin-vantage
 MAIN_PACKAGE=./cmd/$(BINARY_NAME)
-GO_VERSION=1.24.7
+GO_VERSION=1.27.1
 COVERAGE_THRESHOLD=70
 CLIENT_COVERAGE_THRESHOLD=80
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo v0.1.0-dev)
@@ -11,7 +11,7 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 # Default target
 help:
-	@echo "PulumiCost Vantage Plugin - Available targets:"
+	@echo "FinFocus Vantage Plugin - Available targets:"
 	@echo "  make build              - Build the binary"
 	@echo "  make test               - Run all tests"
 	@echo "  make test-coverage      - Run tests and generate coverage report"
@@ -48,6 +48,10 @@ lint:
 vet:
 	@echo "Running go vet..."
 	@go vet ./...
+
+govulncheck:
+	@echo "Running govulncheck..."
+	@govulncheck ./...
 
 tidy:
 	@echo "Checking go mod tidy..."

@@ -49,7 +49,7 @@ func (p *Pager) NextPage(ctx context.Context) (Page, error) {
 	p.query.Cursor = page.NextCursor
 
 	p.logger.Debug(ctx, "Fetched costs page", map[string]interface{}{
-		"rows":        len(page.Data),
+		logFieldRows:  len(page.Data),
 		"next_cursor": page.NextCursor,
 		"has_more":    page.HasMore,
 	})

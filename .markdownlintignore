@@ -4,6 +4,7 @@ prompts/
 pulumi_cost_vantage_adapter_design_draft_v_0.md
 .github/ISSUE_TEMPLATE/
 .github/PULL_REQUEST_TEMPLATE.md
+.github/workflows/
 CodeRabbitPrompt.md
 Github_Development_Prompt.md
 Github_Development_Prompt_Grok.md

@@ -47,7 +47,7 @@ func parseCredentials(raw *rawConfig) string {
 			token = t
 		}
 	}
-	if envToken := os.Getenv("PULUMICOST_VANTAGE_TOKEN"); envToken != "" {
+	if envToken := os.Getenv("FINFOCUS_VANTAGE_TOKEN"); envToken != "" {
 		token = envToken
 	}
 	return token
@@ -82,7 +82,7 @@ func parseParams(raw *rawConfig) (string, string, string, string, string, []stri
 // parseDates parses start and end dates with env overrides.
 func parseDates(startDateStr, endDateStr string) (time.Time, *time.Time, error) {
 	var startDate time.Time
-	if envStartDate := os.Getenv("PULUMICOST_VANTAGE_START_DATE"); envStartDate != "" {
+	if envStartDate := os.Getenv("FINFOCUS_VANTAGE_START_DATE"); envStartDate != "" {
 		startDateStr = envStartDate
 	}
 	if startDateStr == "" {
@@ -96,7 +96,7 @@ func parseDates(startDateStr, endDateStr string) (time.Time, *time.Time, error) 
 	}
 
 	var endDate *time.Time
-	if envEndDate := os.Getenv("PULUMICOST_VANTAGE_END_DATE"); envEndDate != "" {
+	if envEndDate := os.Getenv("FINFOCUS_VANTAGE_END_DATE"); envEndDate != "" {
 		endDateStr = envEndDate
 	}
 	if endDateStr != "" {
@@ -194,7 +194,7 @@ func ValidateConfig(cfg *Config) error {
 	// Token validation.
 	if cfg.Token == "" {
 		return errors.New(
-			"credentials.token is required (set via YAML or PULUMICOST_VANTAGE_TOKEN environment variable)",
+			"credentials.token is required (set via YAML or FINFOCUS_VANTAGE_TOKEN environment variable)",
 		)
 	}
 
@@ -242,8 +242,8 @@ func ValidateConfig(cfg *Config) error {
 	// Group bys validation (should not be empty if specified).
 	// Empty list is allowed (will use defaults), but if present should have valid values.
 	validGroupBys := map[string]bool{
-		"provider":    true,
-		"service":     true,
+		dimProvider:   true,
+		dimService:    true,
 		"account":     true,
 		"project":     true,
 		"region":      true,

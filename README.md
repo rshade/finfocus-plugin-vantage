@@ -1,143 +1,44 @@
-# PulumiCost Vantage Plugin
+# FinFocus Vantage Plugin
 
-A Go-based adapter that fetches normalized cost/usage data from Vantage's
-REST API and maps it into PulumiCost's internal schema with FinOps FOCUS
-1.2 fields.
+A FinFocus gRPC cost source that retrieves actual cloud costs from Vantage Cost
+Reports. It supports AWS, Azure, GCP, Kubernetes, and custom provider data that
+Vantage has imported. Projected costs and pricing estimates are not provided.
 
-## Features
+## Build and run
 
-- Fetch costs via `/costs` endpoint using Cost Report tokens or Workspace
-  tokens
-- Support for daily granularity with common dimension grouping (provider,
-  service, account, project, region, resource_id, tags)
-- Capture list, net, and amortized costs with taxes, credits, and refunds
-- Incremental sync with bookmarks and rate limit backoff
-- Forecast snapshot support
-- FOCUS 1.2 compatible records
-- Comprehensive error handling and observability
-
-## Limitations
-
-- Read-only adapter (cannot create or modify Vantage resources)
-- No direct cost optimization recommendations (handled by PulumiCost analyzers)
-- Forecast functionality requires Cost Report tokens
-- Rate limiting may affect large data syncs
-- Tag cardinality limits may require filtering for performance
-
-## Quick Start
-
-### Prerequisites
-
-- Go 1.24.7+
-- `make`
-- Docker (for running mock tests)
-- `golangci-lint` (for linting)
-
-### Build
-
-```bash
+```sh
 make build
+./bin/finfocus-plugin-vantage --version
 ```
 
-### Run Tests
+When started by FinFocus, the plugin announces its dynamically assigned port
+and serves the cost source gRPC API. Configure `FINFOCUS_VANTAGE_TOKEN` with a
+read-only Vantage service token and `FINFOCUS_VANTAGE_COST_REPORT_TOKEN` with
+the Cost Report token used to select billing data. A per-request token can be
+sent as `x-finfocus-credential-vantage-token`; it takes precedence over the
+environment variable.
 
-```bash
-make test
-```
+`GetActualCost` requires a start and end timestamp, a resource ID, and a
+provider. In finfocus-spec v0.7.0, the request has no resource descriptor, so
+provider and optional Vantage service filters are supplied in tags as
+`provider` and `service`. See [Usage](docs/USAGE.md) and
+[Vantage API configuration](docs/VANTAGE_API.md).
 
-### Lint Code
-
-```bash
-make lint
-```
-
-### Format Code
-
-```bash
-make fmt
-```
-
-## Configuration
-
-See [docs/CONFIG.md](docs/CONFIG.md) for detailed configuration options.
-
-### Basic Example
-
-```yaml
-version: 0.1
-source: vantage
-credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
-params:
-  cost_report_token: "cr_..."
-  start_date: "2024-01-01"
-  granularity: "day"
-  group_bys: ["provider", "service", "account", "region"]
-  metrics: ["cost", "usage"]
-  include_forecast: true
-```
-
-## CLI Commands
-
-```bash
-# Backfill last 12 months
-./bin/pulumicost-vantage backfill --config ./config.yaml --months 12
-
-# Daily incremental sync
-./bin/pulumicost-vantage pull --config ./config.yaml
-
-# Forecast snapshot
-./bin/pulumicost-vantage forecast --config ./config.yaml --out ./data/forecast.json
-```
-
-## Testing with Mock Server
-
-```bash
-# Start Wiremock mock server
-make wiremock-up
-
-# Run tests against mock
-make demo
-
-# Stop mock server
-make wiremock-down
-```
-
-## Documentation
-
-- [Configuration Reference](docs/CONFIG.md)
-- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
-- [Forecast Snapshots](docs/FORECAST.md)
-- [Design Document](pulumi_cost_vantage_adapter_design_draft_v_0.md)
+The adapter returns imported actual cost rows. Vantage data arrival time
+depends on the upstream cloud billing import. The RPC follows Vantage page
+links through `next_page_token`; currency mixing within a page is an error.
+Validated FOCUS records are included when Vantage supplies the required
+account, service, currency, and usage values. See [mapping details](docs/MAPPING.md) and
+[FOCUS 1.4 field availability](docs/FOCUS_1_4_MAPPING.md).
 
 ## Development
 
-### Project Structure
-
-```text
-cmd/pulumicost-vantage/        # CLI entry point
-internal/vantage/
-  ├── client/                  # REST client
-  ├── adapter/                 # Mapping and sync logic
-  └── contracts/               # Test fixtures
-test/wiremock/                 # Mock server configs
-docs/                          # Documentation
-prompts/                       # OpenCode prompts
+```sh
+go build ./cmd/finfocus-plugin-vantage
+go test ./...
+go vet ./...
 ```
 
-### Code Style
-
-- Go conventions with 1.24.7+
-- Structured logging with `adapter=vantage`, `operation`, `attempt` fields
-- Never log tokens; use environment variables for secrets
-- Comprehensive error handling
-
-## Security
-
-- Token provided via `PULUMICOST_VANTAGE_TOKEN` environment variable
-- Tokens never logged or printed
-- Least-privilege: prefer cost_report token over workspace token
-
-## License
-
-Licensed under the [Apache License, Version 2.0](LICENSE).
+The legacy adapter and its contract tests remain in `internal/vantage/adapter`;
+the gRPC implementation is in `internal/plugin` and uses the official-client
+wrapper in `internal/vantageapi`.

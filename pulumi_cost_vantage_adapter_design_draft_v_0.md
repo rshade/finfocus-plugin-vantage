@@ -1,11 +1,11 @@
-# PulumiCost — Vantage Adapter Design (Draft v0.1)
+# FinFocus — Vantage Adapter Design (Draft v0.1)
 
-> Target: PulumiCost Core v0.x + FOCUS 1.2 alignment. Owner: Richard. Status: Draft for review.
+> Target: FinFocus Core v0.x + FOCUS 1.2 alignment. Owner: Richard. Status: Draft for review.
 
 ---
 
 ## 1) Summary
-Design and implement a **Vantage** cost-source adapter that ingests normalized cost/usage data from Vantage’s REST API and maps it into PulumiCost’s internal schema with **FinOps FOCUS 1.2** fields. The adapter supports historical backfills, daily incrementals, tag/label dimensions, and forecast snapshots.
+Design and implement a **Vantage** cost-source adapter that ingests normalized cost/usage data from Vantage’s REST API and maps it into FinFocus’s internal schema with **FinOps FOCUS 1.2** fields. The adapter supports historical backfills, daily incrementals, tag/label dimensions, and forecast snapshots.
 
 ---
 
@@ -20,7 +20,7 @@ Design and implement a **Vantage** cost-source adapter that ingests normalized c
 
 **Non‑Goals**
 - Managing Vantage resources (creating reports/folders/dashboards) beyond what’s needed for read.
-- Direct optimization recommendations (handled by PulumiCost analyzers).
+- Direct optimization recommendations (handled by FinFocus analyzers).
 
 ---
 
@@ -28,19 +28,19 @@ Design and implement a **Vantage** cost-source adapter that ingests normalized c
 1. **Auth**: API token (service or user) via `Authorization: Bearer <token>`.
 2. **Discovery** (optional): enumerate workspaces and find the target **Cost Report** by name or token.
 3. **Ingest**: call `/costs` with date range, granularity, group_bys, and metrics.
-4. **Normalize**: map response rows → PulumiCost `CostRecord` (FOCUS 1.2 fields included).
-5. **Persist**: write to PulumiCost data store (parquet/DB) with idempotency keys.
+4. **Normalize**: map response rows → FinFocus `CostRecord` (FOCUS 1.2 fields included).
+5. **Persist**: write to FinFocus data store (parquet/DB) with idempotency keys.
 6. **Bookmarks**: store `last_successful_end_date` per (workspace, report_token, filter hash).
 7. **Emit**: optional **forecast** via `/cost_reports/{token}/forecast` and weekly snapshot.
 
 ---
 
-## 4) Configuration (pulumicost‑plugin‑vantage)
+## 4) Configuration (finfocus‑plugin‑vantage)
 ```yaml
 version: 0.1
 source: vantage
 credentials:
-  token: ${PULUMICOST_VANTAGE_TOKEN}
+  token: ${FINFOCUS_VANTAGE_TOKEN}
 params:
   workspace_token: "ws_..."         # optional if using cost_report_token
   cost_report_token: "cr_..."       # preferred for stable queries
@@ -69,8 +69,8 @@ params:
 
 ---
 
-## 6) Schema Mapping (PulumiCost ⟷ Vantage ⟷ FOCUS 1.2)
-| PulumiCost Field | Vantage Source | FOCUS 1.2 Field |
+## 6) Schema Mapping (FinFocus ⟷ Vantage ⟷ FOCUS 1.2)
+| FinFocus Field | Vantage Source | FOCUS 1.2 Field |
 |---|---|---|
 | `timestamp` | bucket start (daily) | `usage_start_time` |
 | `provider` | `provider` dim | `cloud_provider` |
@@ -140,7 +140,7 @@ params:
 
 ## 13) Minimal Interface (Go)
 ```go
-// Package: pulumicost/adapters/vantage
+// Package: finfocus/adapters/vantage
 
 type Config struct {
     Token            string
@@ -179,7 +179,7 @@ func (a *Adapter) Sync(ctx context.Context, cfg Config, sink Sink) error
 2. Add forecast snapshots.
 3. Add CSV export path for large backfills.
 4. Harden with retries and late‑posting lag window.
-5. Ship docs + example config + `pulumicost pull --source=vantage`.
+5. Ship docs + example config + `finfocus pull --source=vantage`.
 
 ---
 
@@ -224,11 +224,11 @@ This section adapts the design for fully automated implementation using **OpenCo
   - Use JSON‑only tool responses where indicated
 
 ### 19.2 Repository Layout (multi‑repo)
-- `pulumicost-core/` (existing)
+- `finfocus/` (existing)
   - `internal/focus/` — FOCUS 1.2 types and helpers
   - `pkg/ingest/` — Sink interface + parquet/DB writers
-- `pulumicost-plugin-vantage/` (new)
-  - `cmd/pulumicost-vantage/` — CLI entry (`pull`, `backfill`, `forecast`)
+- `finfocus-plugin-vantage/` (new)
+  - `cmd/finfocus-vantage/` — CLI entry (`pull`, `backfill`, `forecast`)
   - `internal/vantage/client/` — REST client + auth
   - `internal/vantage/adapter/` — mapping & sync logic
   - `internal/vantage/contracts/` — golden samples, fixtures
@@ -237,10 +237,10 @@ This section adapts the design for fully automated implementation using **OpenCo
   - `Makefile`, `.golangci.yml`, `Dockerfile`
 
 ### 19.3 OpenCode Project Definition
-Create `opencode.project.yaml` in `pulumicost-plugin-vantage/`:
+Create `opencode.project.yaml` in `finfocus-plugin-vantage/`:
 ```yaml
 version: 0.15
-project: pulumicost-plugin-vantage
+project: finfocus-plugin-vantage
 model: GrokZeroFree
 concurrency: 3
 runners:
@@ -277,9 +277,9 @@ GOALS: Create module, Makefile, lint config, CLI skeleton, config types, and env
 CONSTRAINTS: No example secrets. All code must compile. Add package comments.
 OUTPUT: Write files. Do not include prose outside code fences when generating multiple files.
 TASKS:
-1) go mod init github.com/PulumiCost/pulumicost-plugin-vantage
+1) go mod init github.com/FinFocus/finfocus-plugin-vantage
 2) Create Makefile with targets: build, test, lint, wiremock-up, wiremock-down, fmt.
-3) Create cmd/pulumicost-vantage/main.go with Cobra CLI: commands pull, backfill, forecast.
+3) Create cmd/finfocus-vantage/main.go with Cobra CLI: commands pull, backfill, forecast.
 4) Create internal/vantage/adapter/config.go with Config struct (see Section 13).
 5) Create .golangci.yml with revive, govet, gocyclo, gofmt.
 6) Create docs/CONFIG.md with YAML example from Section 4.
@@ -300,7 +300,7 @@ REQUIREMENTS:
 
 **prompts/adapter.md** — mapping & sync
 ```
-SYSTEM: Implement adapter mapping to PulumiCost FOCUS 1.2.
+SYSTEM: Implement adapter mapping to FinFocus FOCUS 1.2.
 INPUTS: Section 6 (Schema Mapping), Section 7 (Tags), Section 9 (Incremental).
 OUTPUT: internal/vantage/adapter/{adapter.go,mapping.go,normalize.go}
 REQUIREMENTS:
@@ -328,9 +328,9 @@ REQUIREMENTS: Quickstart, config, auth, examples, troubleshooting, FAQ.
 ```
 
 ### 19.5 Acceptance Criteria (AC)
-1. `make build` produces `pulumicost-vantage` binary (Linux/macOS).
+1. `make build` produces `finfocus-vantage` binary (Linux/macOS).
 2. `make test` passes with ≥85% coverage on `client` and ≥70% overall.
-3. `pulumicost-vantage pull --config ./config.yaml` runs against Wiremock and writes N>0 records via a file sink.
+3. `finfocus-vantage pull --config ./config.yaml` runs against Wiremock and writes N>0 records via a file sink.
 4. Mapping aligns with Section 6; missing fields are null + diagnostic flag.
 5. Incremental sync honors D-3→D-1 lag and updates bookmarks.
 6. Forecast snapshots stored as separate metric family.
@@ -341,7 +341,7 @@ REQUIREMENTS: Quickstart, config, auth, examples, troubleshooting, FAQ.
 - Artifacts: binary + SBOM (`go version -m` + `cyclonedx-gomod` optional)
 
 ### 19.7 Security & Secrets
-- Read token from `PULUMICOST_VANTAGE_TOKEN` or `.env` via `direnv` (dev only)
+- Read token from `FINFOCUS_VANTAGE_TOKEN` or `.env` via `direnv` (dev only)
 - No tokens in logs; redaction middleware
 - Least‑privilege: cost‑report token preferred
 
@@ -353,18 +353,18 @@ REQUIREMENTS: Quickstart, config, auth, examples, troubleshooting, FAQ.
 ### 19.9 Sample CLI Contracts
 ```
 # Backfill last 12 months
-pulumicost-vantage backfill --config ./config.yaml --months 12
+finfocus-vantage backfill --config ./config.yaml --months 12
 
 # Daily incremental (to be cron’d)
-pulumicost-vantage pull --config ./config.yaml
+finfocus-vantage pull --config ./config.yaml
 
 # Forecast snapshot
-pulumicost-vantage forecast --config ./config.yaml --out ./data/forecast.json
+finfocus-vantage forecast --config ./config.yaml --out ./data/forecast.json
 ```
 
 ### 19.10 Migration/Extensibility
 - Add providers or SaaS datasets exposed by Vantage by extending mapping tables.
-- Introduce parquet sink by implementing `Sink` interface in `pulumicost-core`.
+- Introduce parquet sink by implementing `Sink` interface in `finfocus`.
 
 ### 19.11 Known Model Constraints (GrokZeroFree)
 - Prefer smaller, iterative prompts (client → adapter → tests) to avoid context overflow.
@@ -383,7 +383,7 @@ pulumicost-vantage forecast --config ./config.yaml --out ./data/forecast.json
 
 ## 20) Prompt Files (copy‑paste ready)
 
-> Place these under `pulumicost-plugin-vantage/prompts/`. Each prompt is self‑contained and tuned for **OpenCode v0.15.3+** with **GrokZeroFree**. They instruct the model to emit files in multi‑file format blocks.
+> Place these under `finfocus-plugin-vantage/prompts/`. Each prompt is self‑contained and tuned for **OpenCode v0.15.3+** with **GrokZeroFree**. They instruct the model to emit files in multi‑file format blocks.
 
 ### prompts/bootstrap.md
 ```
@@ -401,13 +401,13 @@ GUARDRAILS
 - Do not include explanations outside file blocks.
 
 CONTEXT
-We are creating a new repo `pulumicost-plugin-vantage` that implements a Vantage adapter for PulumiCost. Reference design Sections 4, 5, 8, 11, 13, 19.
+We are creating a new repo `finfocus-plugin-vantage` that implements a Vantage adapter for FinFocus. Reference design Sections 4, 5, 8, 11, 13, 19.
 
 TASKS
-1) Initialize module: `github.com/PulumiCost/pulumicost-plugin-vantage`.
+1) Initialize module: `github.com/FinFocus/finfocus-plugin-vantage`.
 2) Create Makefile with targets: `build`, `test`, `lint`, `fmt`, `wiremock-up`, `wiremock-down`, `demo`.
 3) Create `.golangci.yml` with revive, govet, gocyclo, gofmt, goimports rules.
-4) Create Cobra CLI skeleton in `cmd/pulumicost-vantage/main.go` with commands: `pull`, `backfill`, `forecast`.
+4) Create Cobra CLI skeleton in `cmd/finfocus-vantage/main.go` with commands: `pull`, `backfill`, `forecast`.
 5) Create config types in `internal/vantage/adapter/config.go` (mirror Section 13, with yaml tags).
 6) Create docs/CONFIG.md populated from Section 4 (example YAML + notes).
 7) Create `README.md` (short) linking to docs/CONFIG.md and usage examples.
@@ -450,7 +450,7 @@ Emit all files and tests with multi‑file blocks only.
 ### prompts/adapter.md
 ```
 SYSTEM
-You are implementing the Vantage adapter mapping and sync pipeline for PulumiCost in Go.
+You are implementing the Vantage adapter mapping and sync pipeline for FinFocus in Go.
 
 GUARDRAILS
 - Deterministic mapping; no randomization.
@@ -465,12 +465,12 @@ Use the design’s Sections 6 (Schema Mapping), 7 (Tag Strategy), 9 (Incremental
 TASKS
 1) Create package `internal/vantage/adapter`:
    - `adapter.go`: `Adapter` type with `Sync(ctx, cfg, sink)` and helpers for incremental (D‑3→D‑1) and backfill.
-   - `mapping.go`: Vantage row → PulumiCost `CostRecord` + FOCUS 1.2 fields.
+   - `mapping.go`: Vantage row → FinFocus `CostRecord` + FOCUS 1.2 fields.
    - `normalize.go`: tag normalization, allow/deny filters, label merging.
    - `config.go`: (if not present) `Config` struct with yaml/json tags.
    - `diagnostics.go`: lightweight diag struct + toggles.
 2) Expose forecast snapshot path storing records with `metric_type="forecast"`.
-3) Persist bookmarks through provided `Sink` interface (assume exists in `pulumicost-core`).
+3) Persist bookmarks through provided `Sink` interface (assume exists in `finfocus`).
 4) Include unit tests covering mapping, tag normalization, and idempotency.
 
 OUTPUT

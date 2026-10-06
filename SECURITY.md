@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in the PulumiCost Vantage Plugin,
+If you discover a security vulnerability in the FinFocus Vantage Plugin,
 please email security concerns to the maintainers privately. **Do not** open
 a public GitHub issue.
 
@@ -24,7 +24,7 @@ a public GitHub issue.
 ### Token Management
 
 - API tokens are provided via environment variables
-  (`PULUMICOST_VANTAGE_TOKEN`)
+  (`FINFOCUS_VANTAGE_TOKEN`)
 - Tokens are never logged or printed
 - Authorization headers are redacted in debug output
 - Use workspace/cost report tokens with minimal scope

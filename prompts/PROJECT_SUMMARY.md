@@ -1,4 +1,4 @@
-# PulumiCost Vantage Plugin - Project Completion Summary
+# FinFocus Vantage Plugin - Project Completion Summary
 
 **Date:** October 17, 2025
 **Status:** ✅ **PROJECT SETUP COMPLETE**
@@ -7,19 +7,19 @@
 
 ## Executive Summary
 
-The PulumiCost Vantage Plugin project has been fully scaffolded, designed, and broken down into **38 actionable GitHub issues** organized across **9 development phases**. The project is now ready for implementation by developers or AI assistants.
+The FinFocus Vantage Plugin project has been fully scaffolded, designed, and broken down into **38 actionable GitHub issues** organized across **9 development phases**. The project is now ready for implementation by developers or AI assistants.
 
 ---
 
 ## What Has Been Completed
 
 ### ✅ Phase 0: Project Bootstrap
-- Module structure (`github.com/rshade/pulumicost-plugin-vantage`)
+- Module structure (`github.com/rshade/finfocus-plugin-vantage`)
 - Go 1.24.7+ configuration
 - Build system (Makefile with test, lint, fmt, build targets)
 - Linting configuration (.golangci.yml)
 - Repository governance (.gitignore, README.md)
-- Local dependencies configured (pulumicost-core, pulumicost-spec)
+- Local dependencies configured (finfocus, finfocus-spec)
 
 ### ✅ Phase 1: Documentation & Design
 - **CLAUDE.md**: Developer guidance and architecture reference
@@ -165,7 +165,7 @@ Phases 7 & 9 can start after Phase 3 completes.
 
 ### Project Structure
 ```
-cmd/pulumicost-vantage/        # CLI entry (Issue #3)
+cmd/finfocus-vantage/        # CLI entry (Issue #3)
 internal/vantage/
   ├── client/                   # REST client (Issues #6-#10)
   ├── adapter/                  # Mapping & sync (Issues #11-17)
