@@ -2,7 +2,7 @@
 # Run from repo: mise exec <tool> -- <command>
 
 [tools]
-go = "1.27.1"
+go = "1.27.3"
 node = "24"
 goreleaser = "2.18.2"
 vale = "3.24.0"
