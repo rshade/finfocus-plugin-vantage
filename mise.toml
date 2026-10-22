@@ -4,7 +4,7 @@
 [tools]
 go = "1.27.3"
 node = "24"
-goreleaser = "2.18.2"
+goreleaser = "2.18.3"
 vale = "3.24.0"
 actionlint = "1.7.12"
 golangci-lint = "2.14.0"
