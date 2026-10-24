@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [0.1.2](https://github.com/rshade/finfocus-plugin-vantage/compare/v0.1.1...v0.1.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **deps:** bump golang.org/x/net to v0.60.0 ([#139](https://github.com/rshade/finfocus-plugin-vantage/issues/139)) ([fc16ef6](https://github.com/rshade/finfocus-plugin-vantage/commit/fc16ef658b6ff3d1123c51479bd130c4a7a20d70))
+* **release:** remove the docker publish workflow ([#122](https://github.com/rshade/finfocus-plugin-vantage/issues/122)) ([2e8e70d](https://github.com/rshade/finfocus-plugin-vantage/commit/2e8e70d743dcda76441cc910fc3ce2ee747be5e4))
+
+
+### Documentation
+
+* link Vantage and FinFocus from the README ([#138](https://github.com/rshade/finfocus-plugin-vantage/issues/138)) ([02537f3](https://github.com/rshade/finfocus-plugin-vantage/commit/02537f32f333217dadb297e20d37b662238dca12))
+
 ## [0.1.1](https://github.com/rshade/finfocus-plugin-vantage/compare/v0.1.0...v0.1.1) (2026-10-06)
 
 
