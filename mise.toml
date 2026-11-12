@@ -12,7 +12,7 @@ golangci-lint = "2.14.0"
 "aqua:reviewdog/reviewdog" = "0.21.2"
 "npm:@commitlint/cli" = "21.2.4"
 "npm:@commitlint/config-conventional" = "21.2.4"
-"npm:markdownlint-cli2" = "0.23.3"
+"npm:markdownlint-cli2" = "0.24.1"
 
 [env]
 # Tools can be installed as needed
