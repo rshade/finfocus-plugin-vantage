@@ -129,8 +129,7 @@ func serveTestPlugin(t *testing.T, p *Plugin) pbc.CostSourceServiceClient {
 	done := make(chan error, 1)
 	go func() {
 		done <- pluginsdk.Serve(ctx, pluginsdk.ServeConfig{
-			Plugin: p, Listener: listener,
-			PluginInfo: &pluginsdk.PluginInfo{Name: "finfocus-plugin-vantage", Version: "test", SpecVersion: pluginsdk.SpecVersion},
+			Plugin: p, Listener: listener, PluginInfo: p.Info(),
 		})
 	}()
 	conn, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))

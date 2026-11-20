@@ -28,6 +28,9 @@ import (
 	"github.com/rshade/finfocus-plugin-vantage/internal/vantageapi"
 )
 
+// PluginName is the plugin's install name. Use it wherever the plugin states its name.
+const PluginName = "vantage"
+
 // Plugin is the Vantage cost source. Cost retrieval is implemented separately
 // from the server skeleton so the API client can be injected and tested.
 type Plugin struct {
@@ -54,7 +57,17 @@ func New(version string) *Plugin {
 }
 
 // Name returns the plugin discovery name.
-func (p *Plugin) Name() string { return "vantage" }
+func (p *Plugin) Name() string { return PluginName }
+
+// Info returns the metadata served by GetPluginInfo.
+func (p *Plugin) Info() *pluginsdk.PluginInfo {
+	return &pluginsdk.PluginInfo{
+		Name:        PluginName,
+		Version:     p.version,
+		SpecVersion: pluginsdk.SpecVersion,
+		Metadata:    map[string]string{"supports_per_request_credentials": "true"},
+	}
+}
 
 // GetProjectedCost is unsupported because Vantage provides actual billing data.
 func (p *Plugin) GetProjectedCost(
@@ -404,7 +417,7 @@ func mapCostRow(
 	if err != nil {
 		return nil, "", status.Error(codes.DataLoss, "Vantage returned malformed cost date")
 	}
-	item := &pbc.ActualCostResult{Timestamp: timestamppb.New(at), Cost: amount, Source: "vantage"}
+	item := &pbc.ActualCostResult{Timestamp: timestamppb.New(at), Cost: amount, Source: PluginName}
 	if focus := buildFocusRecord(req, provider, row, amount, at); focus != nil {
 		item.FocusRecord = focus
 	} else if row.Currency != "USD" {
