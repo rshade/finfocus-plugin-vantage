@@ -25,14 +25,8 @@ func main() {
 		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := pluginsdk.Serve(ctx, pluginsdk.ServeConfig{
-		Plugin: plugin.New(version),
-		PluginInfo: &pluginsdk.PluginInfo{
-			Name: "finfocus-plugin-vantage", Version: version,
-			SpecVersion: pluginsdk.SpecVersion,
-			Metadata:    map[string]string{"supports_per_request_credentials": "true"},
-		},
-	})
+	p := plugin.New(version)
+	err := pluginsdk.Serve(ctx, pluginsdk.ServeConfig{Plugin: p, PluginInfo: p.Info()})
 	stop()
 	if err != nil {
 		log.Printf("failed to serve: %v", err)
