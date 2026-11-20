@@ -5,7 +5,7 @@ Vantage Cost Reports. Projected costs and pricing estimates are unavailable.
 
 This plugin integrates [Vantage](https://www.vantage.sh/) and is a plugin for
 [FinFocus](https://github.com/rshade/finfocus), the Pulumi cost CLI.
-See the [FinFocus docs page for this plugin](https://rshade.github.io/finfocus/plugins/vantage/).
+See the [FinFocus docs page for this plugin](https://finfocus.dev/docs/plugins/vantage/).
 
 ## Install
 
